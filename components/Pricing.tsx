@@ -8,11 +8,16 @@ const features: {
   premium: string | boolean;
   max: string | boolean;
 }[] = [
-  { label: "Number of pages",  basic: "5",  premium: "10", max: "Unlimited" },
-  { label: "3 month follow-up", basic: false, premium: true,  max: true },
-  { label: "3D elements",       basic: false, premium: true,  max: true },
-  { label: "Backend",           basic: false, premium: true,  max: true },
+  { label: "Number of pages",  	basic: "5",  premium: "10", max: "Unlimited" },
+  { label: "Design customize", 	basic: true, premium: true,  max: true },
+  { label: "Mobile Reponsive", 	basic: true, premium: true,  max: true },
+  { label: "SEO",              	basic: true, premium: true,  max: true },
+  { label: "3 month follow-up", basic: true, premium: true, max: true },
+  { label: "Backend",       	basic: false, premium: true, max: true },
+  { label: "Advanced animation",basic: false, premium: true, max: true },
   { label: "User system",       basic: false, premium: false, max: true },
+  { label: "Admin Dashboard",   basic: false, premium: false, max: true },
+  
 ];
 
 function Check({ dark }: { dark?: boolean }) {
@@ -99,7 +104,7 @@ export default function Pricing() {
             >
               <p className="text-sm font-semibold text-[#141414]/40 mb-2">Basic</p>
               <div className="flex items-end gap-1">
-                <span className="text-[2rem] font-black text-[#141414] leading-none">$3,900</span>
+                <span className="text-[2rem] font-black text-[#141414] leading-none">$79.99</span>
                 <span className="text-xs font-medium text-[#141414]/35 mb-1">/project</span>
               </div>
             </div>
@@ -111,7 +116,7 @@ export default function Pricing() {
               </span>
               <p className="text-sm font-semibold text-white/50 mb-2">Premium</p>
               <div className="flex items-end gap-1">
-                <span className="text-[2rem] font-black text-white leading-none">$7,900</span>
+                <span className="text-[2rem] font-black text-white leading-none">$129.99</span>
                 <span className="text-xs font-medium text-white/35 mb-1">/project</span>
               </div>
             </div>
@@ -123,7 +128,7 @@ export default function Pricing() {
             >
               <p className="text-sm font-semibold text-[#141414]/40 mb-2">Max</p>
               <div className="flex items-end gap-1">
-                <span className="text-[2rem] font-black text-[#141414] leading-none">$14,900</span>
+                <span className="text-[2rem] font-black text-[#141414] leading-none">$249.99</span>
                 <span className="text-xs font-medium text-[#141414]/35 mb-1">/project</span>
               </div>
             </div>
