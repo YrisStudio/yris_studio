@@ -69,20 +69,20 @@ export default function Footer() {
 
               <div className="space-y-3">
                 <a
-                  href="mailto:hello@yrisstudio.com"
+                  href="mailto:yrisinc@gmail.com"
                   className="flex items-center gap-2 text-white/55 hover:text-white transition-colors text-sm font-medium"
                 >
                   hello@yrisstudio.com
                   <ArrowTopRight />
                 </a>
                 <a
-                  href="https://x.com/yrisstudio"
+                  href="https://x.com/yris_studio"
                   target="_blank"
                   rel="noopener noreferrer"
                   className="flex items-center gap-2 text-white/55 hover:text-white transition-colors text-sm font-medium"
                 >
                   <XIcon />
-                  @yrisstudio
+                  @yris_studio
                   <ArrowTopRight />
                 </a>
               </div>
