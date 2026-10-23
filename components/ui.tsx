@@ -1,63 +1,72 @@
 import Link from "next/link";
-import { ArrowUpRight } from "lucide-react";
+import { ChevronRight } from "lucide-react";
 
-type ButtonProps = {
-  href: string;
-  children: React.ReactNode;
-  variant?: "solid" | "ghost";
-};
+export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <div className={`mx-auto w-full max-w-[1120px] px-5 sm:px-6 ${className}`}>{children}</div>;
+}
 
-export function ButtonLink({ href, children, variant = "solid" }: ButtonProps) {
-  const base =
-    "group inline-flex items-center gap-2 rounded-full px-6 py-3.5 text-sm font-medium transition-colors focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-ink";
-  const styles =
-    variant === "solid"
-      ? "bg-ink text-white hover:bg-ink/85"
-      : "border border-line bg-white text-ink hover:bg-cloud";
+const btn =
+  "inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
+
+// Bouton principal orange, et bouton secondaire sombre avec chevron.
+export function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
-    <Link href={href} className={`${base} ${styles}`}>
+    <Link
+      href={href}
+      className={`${btn} shine bg-gradient-to-b from-accent-2 to-accent text-white shadow-[0_8px_30px_-8px_rgb(242_84_45/0.7),inset_0_1px_0_rgb(255_255_255/0.25)] hover:brightness-110`}
+    >
       {children}
-      <ArrowUpRight
-        size={16}
-        aria-hidden
-        className="transition-transform group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
-      />
     </Link>
   );
 }
 
+export function SecondaryLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link
+      href={href}
+      className={`${btn} group border border-line-strong bg-panel-2 text-fg hover:bg-fg/10`}
+    >
+      {children}
+      <ChevronRight size={15} aria-hidden className="transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+export function TextLink({ href, children }: { href: string; children: React.ReactNode }) {
+  return (
+    <Link href={href} className="group inline-flex items-center gap-0.5 text-sm font-medium text-accent hover:text-fg">
+      {children}
+      <ChevronRight size={15} aria-hidden className="transition-transform group-hover:translate-x-0.5" />
+    </Link>
+  );
+}
+
+// Petite étiquette en police mono, en capitales.
 export function Eyebrow({ children }: { children: React.ReactNode }) {
   return (
-    <span className="mb-4 inline-block rounded-full bg-cloud px-3 py-1 text-xs font-medium text-muted">
+    <span className="inline-block rounded-md border border-line-strong bg-panel-2 px-2.5 py-1 font-mono text-[11px] uppercase tracking-wider text-fg/80">
       {children}
     </span>
   );
 }
 
-export function SectionHeading({
-  eyebrow,
-  title,
-  intro,
-  center,
-}: {
-  eyebrow: string;
-  title: React.ReactNode;
-  intro?: string;
-  center?: boolean;
-}) {
+export function SectionTitle({ eyebrow, title, intro }: { eyebrow: string; title: React.ReactNode; intro?: string }) {
   return (
-    <div className={`mb-12 max-w-2xl ${center ? "mx-auto text-center" : ""}`}>
+    <div className="mx-auto mb-14 max-w-2xl text-center">
       <Eyebrow>{eyebrow}</Eyebrow>
-      <h2 className="text-3xl font-medium tracking-tight sm:text-5xl">{title}</h2>
-      {intro && <p className="mt-4 text-lg text-muted">{intro}</p>}
+      <h2 className="mt-5 text-[34px] font-medium leading-[1.1] tracking-tight sm:text-5xl">{title}</h2>
+      {intro && <p className="mx-auto mt-4 max-w-md text-[15px] text-muted">{intro}</p>}
     </div>
   );
 }
 
-export function Highlight({ children }: { children: React.ReactNode }) {
-  return <span className="rounded-lg bg-peach px-1.5 box-decoration-clone">{children}</span>;
+export function Card({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return (
+    <div className={`relative overflow-hidden rounded-2xl border border-line bg-panel ${className}`}>{children}</div>
+  );
 }
 
-export function Container({ children, className = "" }: { children: React.ReactNode; className?: string }) {
-  return <div className={`mx-auto w-full max-w-6xl px-5 sm:px-8 ${className}`}>{children}</div>;
+// Étiquette mono discrète utilisée dans les mini-interfaces.
+export function Mono({ children, className = "" }: { children: React.ReactNode; className?: string }) {
+  return <span className={`font-mono text-[10px] uppercase tracking-wider text-muted ${className}`}>{children}</span>;
 }

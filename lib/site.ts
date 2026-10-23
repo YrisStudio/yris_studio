@@ -1,125 +1,161 @@
 // Tout le contenu éditorial du site est centralisé ici.
 
 export const site = {
-  name: "Yris Studio",
+  name: "Yris",
+  tagline: "Impression 3D à la demande",
   url: "https://yris-studio.vercel.app",
   description:
-    "Yris Studio conçoit et développe des sites web sur mesure, soignés et rapides, pour les marques et indépendants ambitieux.",
+    "Yris imprime en 3D les pièces dont vous avez besoin : pièces auto, objets du quotidien, prototypes. Commandez, demandez un devis ou proposez votre projet.",
   email: "hello@yrisstudio.com",
-  x: { handle: "@yris_studio", url: "https://x.com/yris_studio" },
 };
 
 export const nav = [
-  { href: "/projets", label: "Projets" },
-  { href: "/tarifs", label: "Tarifs" },
-  { href: "/contact", label: "Contact" },
+  { href: "/boutique", label: "Boutique" },
+  { href: "/#fonctionnement", label: "Fonctionnement" },
+  { href: "/#materiaux", label: "Matériaux" },
 ];
 
-export type Tint = "lavender" | "mint" | "butter" | "peach";
+// Les trois façons de travailler avec nous. L'id sert aussi de paramètre ?type= sur /demande.
+export const requestTypes = [
+  {
+    id: "commande",
+    label: "Commander",
+    title: "Commander un article",
+    text: "Choisissez une pièce dans la boutique, on l'imprime pour vous.",
+  },
+  {
+    id: "sur-mesure",
+    label: "Sur mesure",
+    title: "Demander une pièce",
+    text: "Envoyez un fichier 3D, une photo ou une description : on vous fait un devis.",
+  },
+  {
+    id: "projet",
+    label: "Proposer",
+    title: "Proposer un projet",
+    text: "Une idée, un prototype, une petite série ? Parlons-en.",
+  },
+] as const;
 
-export const tints: Record<Tint, { bg: string; ink: string }> = {
-  lavender: { bg: "var(--color-lavender)", ink: "var(--color-lavender-ink)" },
-  mint: { bg: "var(--color-mint)", ink: "var(--color-mint-ink)" },
-  butter: { bg: "var(--color-butter)", ink: "var(--color-butter-ink)" },
-  peach: { bg: "var(--color-peach)", ink: "var(--color-peach-ink)" },
-};
+export type RequestType = (typeof requestTypes)[number]["id"];
 
-export const steps: { title: string; text: string; tint: Tint }[] = [
-  {
-    title: "Plusieurs pistes",
-    text: "On imagine plusieurs maquettes dans des styles bien différents, pour vous donner un vrai choix créatif.",
-    tint: "lavender",
-  },
-  {
-    title: "Vous choisissez",
-    text: "Vous retenez la direction qui vous parle et vous nous dites ce qu'il faut garder, ajuster ou repenser.",
-    tint: "peach",
-  },
-  {
-    title: "On affine ensemble",
-    text: "On peaufine chaque détail avec vous jusqu'à ce que le design soit exactement juste. Sans compromis.",
-    tint: "butter",
-  },
-  {
-    title: "On développe et on lance",
-    text: "On transforme la maquette validée en un site rapide et propre, puis on le met en ligne.",
-    tint: "mint",
-  },
-];
+// Les fonctions Vercel refusent les requêtes de plus de 4,5 Mo.
+export const MAX_FILES_BYTES = 4 * 1024 * 1024;
 
-export const projects: {
+export type Category = "Auto" | "Maison" | "Bureau" | "Pratique";
+
+export type Product = {
+  slug: string;
   name: string;
-  category: string;
-  tint: Tint;
-  url?: string;
-}[] = [
-  { name: "Luxe Interiors", category: "Studio d'architecture intérieure", tint: "butter" },
-  { name: "Volt Finance", category: "Startup fintech", tint: "mint" },
-  { name: "Nova Agency", category: "Agence créative", tint: "lavender" },
-  { name: "Bloom Market", category: "E-commerce", tint: "peach" },
-];
-
-export type Plan = {
-  name: string;
+  category: Category;
   price: string;
-  pitch: string;
-  featured?: boolean;
-  features: string[];
+  material: string;
+  text: string;
 };
 
-export const plans: Plan[] = [
+export const products: Product[] = [
   {
-    name: "Essentiel",
-    price: "79,99 €",
-    pitch: "Pour lancer une présence en ligne soignée.",
-    features: [
-      "Jusqu'à 5 pages",
-      "Design sur mesure",
-      "Adapté au mobile",
-      "Référencement (SEO) de base",
-      "Suivi pendant 3 mois",
-    ],
+    slug: "clips-garnissage",
+    name: "Clips de garnissage",
+    category: "Auto",
+    price: "dès 4 €",
+    material: "PETG",
+    text: "Clips de remplacement pour panneaux de porte et garnitures. Lot de 10.",
   },
   {
-    name: "Premium",
-    price: "129,99 €",
-    pitch: "Pour un site vivant, avec du contenu à gérer.",
-    featured: true,
-    features: [
-      "Jusqu'à 10 pages",
-      "Tout le pack Essentiel",
-      "Back-end (formulaires, contenus)",
-      "Animations avancées",
-    ],
+    slug: "support-telephone-grille",
+    name: "Support téléphone",
+    category: "Auto",
+    price: "dès 12 €",
+    material: "ASA",
+    text: "Se fixe sur la grille d'aération. Résiste à la chaleur de l'habitacle.",
   },
   {
-    name: "Max",
-    price: "249,99 €",
-    pitch: "Pour un vrai produit web, sans limite.",
-    features: [
-      "Pages illimitées",
-      "Tout le pack Premium",
-      "Espace utilisateurs",
-      "Tableau de bord d'administration",
-    ],
+    slug: "cache-crochet-remorquage",
+    name: "Cache crochet de remorquage",
+    category: "Auto",
+    price: "sur devis",
+    material: "ASA",
+    text: "Reproduit à l'identique d'après votre modèle de véhicule.",
+  },
+  {
+    slug: "bouton-tableau-de-bord",
+    name: "Bouton de tableau de bord",
+    category: "Auto",
+    price: "sur devis",
+    material: "ABS",
+    text: "Un bouton cassé ou introuvable ? On le remodélise et on l'imprime.",
+  },
+  {
+    slug: "organiseur-tiroir",
+    name: "Organiseur de tiroir",
+    category: "Maison",
+    price: "dès 9 €",
+    material: "PLA",
+    text: "Modulable, aux dimensions exactes de votre tiroir.",
+  },
+  {
+    slug: "crochets-muraux",
+    name: "Crochets muraux",
+    category: "Maison",
+    price: "dès 6 €",
+    material: "PETG",
+    text: "Robustes et discrets, lot de 4. Couleur au choix.",
+  },
+  {
+    slug: "support-casque",
+    name: "Support de casque",
+    category: "Bureau",
+    price: "dès 15 €",
+    material: "PLA",
+    text: "Se fixe sous le bureau, libère de la place.",
+  },
+  {
+    slug: "passe-cables",
+    name: "Passe-câbles",
+    category: "Bureau",
+    price: "dès 5 €",
+    material: "PLA",
+    text: "Fini les câbles qui tombent derrière le bureau. Lot de 6.",
+  },
+  {
+    slug: "pieces-detachees",
+    name: "Pièce de rechange",
+    category: "Pratique",
+    price: "sur devis",
+    material: "Selon usage",
+    text: "Électroménager, jouet, meuble : on recrée la pièce qui manque.",
   },
 ];
 
-export const faq: { q: string; a: string }[] = [
+export const materials = [
+  { name: "PLA", use: "Objets du quotidien, déco, prototypes", heat: "jusqu'à 55 °C" },
+  { name: "PETG", use: "Pièces solides, usage extérieur léger", heat: "jusqu'à 75 °C" },
+  { name: "ABS", use: "Pièces techniques, intérieur auto", heat: "jusqu'à 95 °C" },
+  { name: "ASA", use: "Pièces auto exposées au soleil", heat: "jusqu'à 95 °C, anti-UV" },
+];
+
+export const steps = [
+  { title: "Vous envoyez", text: "Un article de la boutique, un fichier 3D, une photo ou juste une description." },
+  { title: "On vous répond", text: "Prix, matériau et délai sous 48 heures. Vous validez, ou on ajuste." },
+  { title: "On imprime", text: "Votre pièce est imprimée, vérifiée, puis expédiée ou remise en main propre." },
+];
+
+export const faq = [
   {
-    q: "Combien de temps faut-il pour créer mon site ?",
-    a: "Comptez en général deux à quatre semaines entre le premier échange et la mise en ligne, selon la formule et la rapidité des retours.",
+    q: "Quels fichiers puis-je envoyer ?",
+    a: "Les formats STL, 3MF, OBJ et STEP sont les plus pratiques. Pas de fichier ? Une photo avec des mesures suffit souvent pour commencer.",
   },
   {
-    q: "Le prix est-il payé en une fois ?",
-    a: "Le tarif indiqué correspond au projet complet. On en discute ensemble avant de démarrer, sans surprise.",
+    q: "Comment est calculé le prix ?",
+    a: "Selon la taille de la pièce, la quantité de matière, le matériau et le temps d'impression. Le devis est gratuit et sans engagement.",
   },
   {
-    q: "Puis-je modifier mon site moi-même ensuite ?",
-    a: "Oui, à partir de la formule Premium vous pouvez gérer vos contenus. Et pendant le suivi, on reste disponibles pour vous aider.",
+    q: "Les pièces auto résistent-elles à la chaleur ?",
+    a: "Oui, pour l'intérieur d'une voiture on utilise de l'ABS ou de l'ASA, qui supportent bien plus de chaleur que le PLA.",
   },
   {
-    q: "Que se passe-t-il après les 3 mois de suivi ?",
-    a: "Votre site reste à vous. Si vous souhaitez continuer à être accompagné, on vous propose une formule de maintenance.",
+    q: "Comment se passe le paiement ?",
+    a: "Une fois le devis validé, on vous envoie les modalités de paiement par email avant de lancer l'impression.",
   },
 ];
