@@ -1,23 +1,39 @@
 import type { Metadata } from "next";
-import { Montserrat } from "next/font/google";
+import { Inter } from "next/font/google";
+import { Analytics } from "@vercel/analytics/next";
+import Header from "@/components/Header";
+import Footer from "@/components/Footer";
+import { site } from "@/lib/site";
 import "./globals.css";
 
-const montserrat = Montserrat({
+const inter = Inter({
   subsets: ["latin"],
-  variable: "--font-montserrat",
+  variable: "--font-inter",
   display: "swap",
 });
 
 export const metadata: Metadata = {
-  title: "Yris — Premium Web Design",
-  description: "We design and build premium websites for ambitious clients.",
+  metadataBase: new URL(site.url),
+  title: {
+    default: `${site.name} · Sites web sur mesure`,
+    template: `%s · ${site.name}`,
+  },
+  description: site.description,
+  openGraph: {
+    type: "website",
+    locale: "fr_FR",
+    siteName: site.name,
+  },
 };
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="en" className={montserrat.variable}>
-      <body className="min-h-screen bg-white text-[#141414] antialiased">
-        {children}
+    <html lang="fr" className={inter.variable}>
+      <body className="min-h-screen antialiased flex flex-col">
+        <Header />
+        <main className="flex-1">{children}</main>
+        <Footer />
+        <Analytics />
       </body>
     </html>
   );

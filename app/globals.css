@@ -1,7 +1,35 @@
 @import "tailwindcss";
 
-@theme inline {
-  --font-sans: var(--font-montserrat);
+@theme {
+  --font-sans: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+
+  --color-ink: #141414;
+  --color-muted: #6b6b6b;
+  --color-line: #ececec;
+  --color-paper: #ffffff;
+  --color-cloud: #f7f6f3;
+
+  --color-lavender: #e6e1ff;
+  --color-lavender-ink: #3c3489;
+  --color-mint: #d7f0e4;
+  --color-mint-ink: #085041;
+  --color-butter: #ffe9b8;
+  --color-butter-ink: #633806;
+  --color-peach: #ffd9c7;
+  --color-peach-ink: #712b13;
+
+  --animate-rise: rise 0.8s cubic-bezier(0.22, 1, 0.36, 1) both;
+
+  @keyframes rise {
+    from {
+      opacity: 0;
+      transform: translateY(16px);
+    }
+    to {
+      opacity: 1;
+      transform: none;
+    }
+  }
 }
 
 html {
@@ -9,18 +37,20 @@ html {
 }
 
 body {
-  background: #ffffff;
-  color: #141414;
-  overflow-x: hidden;
+  background: var(--color-paper);
+  color: var(--color-ink);
 }
 
-::-webkit-scrollbar {
-  width: 4px;
+::selection {
+  background: var(--color-peach);
+  color: var(--color-ink);
 }
-::-webkit-scrollbar-track {
-  background: transparent;
-}
-::-webkit-scrollbar-thumb {
-  background: #141414;
-  border-radius: 2px;
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation: none !important;
+    transition: none !important;
+  }
 }
