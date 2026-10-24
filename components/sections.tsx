@@ -2,31 +2,50 @@ import Link from "next/link";
 import { CategoryGlyph, StepPrint, StepQuote, StepUpload } from "@/components/Art";
 import { ScrollWords, Spotlight } from "@/components/motion";
 import { Container, Eyebrow, Mono, PrimaryLink, SecondaryLink, SectionTitle } from "@/components/ui";
-import { faq, materials, steps, type Product } from "@/lib/site";
+import FavoriteButton from "@/components/FavoriteButton";
+import { faq, formatPrice, materials, steps, type Product } from "@/lib/site";
 
 // Délai d'apparition en cascade pour une liste d'éléments.
 export const stagger = (i: number, step = 90) => ({ "--d": `${i * step}ms` }) as React.CSSProperties;
 
-export function ProductCard({ product, index = 0 }: { product: Product; index?: number }) {
+export function ProductCard({
+  product,
+  index = 0,
+  favorite = false,
+  showFavorite = true,
+}: {
+  product: Product;
+  index?: number;
+  favorite?: boolean;
+  showFavorite?: boolean;
+}) {
+  const onQuote = product.priceCents === null;
   return (
     <div data-reveal style={stagger(index % 3)}>
       <Spotlight className="flex h-full flex-col p-4">
-        <CategoryGlyph
-          category={product.category}
-          className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.02]"
-        />
+        <div className="relative">
+          <CategoryGlyph
+            category={product.category}
+            className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.02]"
+          />
+          {showFavorite && (
+            <div className="absolute right-3 top-3">
+              <FavoriteButton slug={product.slug} name={product.name} initial={favorite} />
+            </div>
+          )}
+        </div>
         <Mono className="mt-5">
           {product.category} · {product.material}
         </Mono>
         <h3 className="mt-1 text-lg font-medium tracking-tight">{product.name}</h3>
         <p className="mt-2 flex-1 text-sm text-muted">{product.text}</p>
         <div className="relative mt-5 flex items-center justify-between">
-          <span className="font-mono text-sm text-fg">{product.price}</span>
+          <span className={`font-mono text-sm ${onQuote ? "text-muted" : "text-fg"}`}>{formatPrice(product.priceCents)}</span>
           <Link
-            href={`/demande?type=commande&article=${product.slug}`}
+            href={onQuote ? `/demande?type=sur-mesure&article=${product.slug}` : `/demande?type=commande&article=${product.slug}`}
             className="rounded-lg border border-line-strong bg-panel-2 px-3.5 py-1.5 text-sm transition-colors hover:border-accent hover:bg-accent hover:text-white"
           >
-            Commander
+            {onQuote ? "Demander un devis" : "Commander"}
           </Link>
         </div>
       </Spotlight>
@@ -171,23 +190,26 @@ export function Faq() {
 
 export function FinalCta() {
   return (
-    <section className="grid-bg relative overflow-hidden py-32 text-center">
-      <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-72 max-w-3xl animate-pulse rounded-full bg-accent/25 blur-[120px] [animation-duration:5s]" />
-      <Container className="relative" >
-        <div data-reveal>
-          <Eyebrow>Devis gratuit</Eyebrow>
-          <h2 className="mx-auto mt-5 max-w-xl text-[40px] font-medium leading-[1.05] tracking-tight sm:text-6xl">
-            Une pièce en tête ?
-          </h2>
-          <p className="mx-auto mt-5 max-w-md text-[15px] text-muted">
-            Envoyez-nous un fichier, une photo ou quelques mots. Réponse sous 48 heures.
-          </p>
-          <div className="mt-9 flex flex-wrap justify-center gap-3">
-            <PrimaryLink href="/demande">Demander un devis</PrimaryLink>
-            <SecondaryLink href="/boutique">Voir la boutique</SecondaryLink>
+    // Le fond blanc derrière laisse voir l'arrondi des coins du haut.
+    <div className="theme-light">
+      <section className="theme-dark grid-bg relative overflow-hidden rounded-t-[2.5rem] py-32 text-center sm:rounded-t-[3.5rem]">
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-72 max-w-3xl animate-pulse rounded-full bg-accent/25 blur-[120px] [animation-duration:5s]" />
+        <Container className="relative" >
+          <div data-reveal>
+            <Eyebrow>Devis gratuit</Eyebrow>
+            <h2 className="mx-auto mt-5 max-w-xl text-[40px] font-medium leading-[1.05] tracking-tight sm:text-6xl">
+              Une pièce en tête ?
+            </h2>
+            <p className="mx-auto mt-5 max-w-md text-[15px] text-muted">
+              Envoyez-nous un fichier, une photo ou quelques mots. Réponse sous 48 heures.
+            </p>
+            <div className="mt-9 flex flex-wrap justify-center gap-3">
+              <PrimaryLink href="/demande">Demander un devis</PrimaryLink>
+              <SecondaryLink href="/boutique">Voir la boutique</SecondaryLink>
+            </div>
           </div>
-        </div>
-      </Container>
-    </section>
+        </Container>
+      </section>
+    </div>
   );
 }

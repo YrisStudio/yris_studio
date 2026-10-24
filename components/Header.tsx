@@ -1,14 +1,19 @@
 "use client";
 
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, X } from "lucide-react";
+import { Menu, UserRound, X } from "lucide-react";
+import { createClient } from "@/lib/supabase/client";
 import { nav } from "@/lib/site";
 
 export default function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
+  const loggedIn = useLoggedIn();
+  const account = loggedIn
+    ? { href: "/compte", label: "Mon compte" }
+    : { href: `/connexion?next=${encodeURIComponent(pathname)}`, label: "Connexion" };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-xl">
@@ -30,12 +35,23 @@ export default function Header() {
           ))}
         </nav>
 
-        <Link
-          href="/demande"
-          className="hidden rounded-lg border border-line-strong bg-panel-2 px-4 py-2 text-sm transition-colors hover:bg-white/10 md:inline-flex"
-        >
-          Demander un devis
-        </Link>
+        <div className="hidden items-center gap-2 md:flex">
+          {loggedIn !== null && (
+            <Link
+              href={account.href}
+              className="inline-flex items-center gap-1.5 rounded-lg px-3 py-2 text-sm text-fg/80 transition-colors hover:text-white"
+            >
+              <UserRound size={16} aria-hidden />
+              {account.label}
+            </Link>
+          )}
+          <Link
+            href="/demande"
+            className="rounded-lg border border-line-strong bg-panel-2 px-4 py-2 text-sm transition-colors hover:bg-white/10"
+          >
+            Demander un devis
+          </Link>
+        </div>
 
         <button
           type="button"
@@ -51,7 +67,7 @@ export default function Header() {
 
       {open && (
         <nav id="menu-mobile" aria-label="Navigation mobile" className="h-[calc(100dvh-4rem)] bg-bg px-6 pt-6 md:hidden">
-          {[...nav, { href: "/demande", label: "Demander un devis" }].map((item) => (
+          {[...nav, { href: "/demande", label: "Demander un devis" }, ...(loggedIn !== null ? [account] : [])].map((item) => (
             <Link
               key={item.href}
               href={item.href}
@@ -65,4 +81,17 @@ export default function Header() {
       )}
     </header>
   );
+}
+
+// null tant qu'on ne sait pas encore (ou si les comptes ne sont pas activés), puis true/false.
+function useLoggedIn() {
+  const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    supabase.auth.getUser().then(({ data }) => setLoggedIn(Boolean(data.user)));
+    const { data } = supabase.auth.onAuthStateChange((_event, session) => setLoggedIn(Boolean(session)));
+    return () => data.subscription.unsubscribe();
+  }, []);
+  return loggedIn;
 }

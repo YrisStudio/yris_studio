@@ -19,11 +19,12 @@ export default function Footer() {
         </nav>
         <div className="flex flex-col gap-2.5">
           <a href={`mailto:${site.email}`} className="hover:text-fg">{site.email}</a>
+          <Link href="/signaler" className="hover:text-fg">Signaler un problème</Link>
         </div>
       </div>
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-2 border-t border-line px-5 py-6 text-xs sm:flex-row sm:justify-between sm:px-6">
         <p>© {new Date().getFullYear()} {site.name}</p>
-        <p>Prix « dès » indicatifs. Le prix final dépend de la taille, du matériau et de la quantité.</p>
+        <p>Paiement après validation de la commande. Les pièces sur mesure font l&apos;objet d&apos;un devis gratuit.</p>
       </div>
     </footer>
   );

@@ -48,7 +48,8 @@ export type Product = {
   slug: string;
   name: string;
   category: Category;
-  price: string;
+  // Prix fixe en centimes, ou null si la pièce est sur devis.
+  priceCents: number | null;
   material: string;
   text: string;
 };
@@ -58,7 +59,7 @@ export const products: Product[] = [
     slug: "clips-garnissage",
     name: "Clips de garnissage",
     category: "Auto",
-    price: "dès 4 €",
+    priceCents: 400,
     material: "PETG",
     text: "Clips de remplacement pour panneaux de porte et garnitures. Lot de 10.",
   },
@@ -66,7 +67,7 @@ export const products: Product[] = [
     slug: "support-telephone-grille",
     name: "Support téléphone",
     category: "Auto",
-    price: "dès 12 €",
+    priceCents: 1200,
     material: "ASA",
     text: "Se fixe sur la grille d'aération. Résiste à la chaleur de l'habitacle.",
   },
@@ -74,7 +75,7 @@ export const products: Product[] = [
     slug: "cache-crochet-remorquage",
     name: "Cache crochet de remorquage",
     category: "Auto",
-    price: "sur devis",
+    priceCents: null,
     material: "ASA",
     text: "Reproduit à l'identique d'après votre modèle de véhicule.",
   },
@@ -82,7 +83,7 @@ export const products: Product[] = [
     slug: "bouton-tableau-de-bord",
     name: "Bouton de tableau de bord",
     category: "Auto",
-    price: "sur devis",
+    priceCents: null,
     material: "ABS",
     text: "Un bouton cassé ou introuvable ? On le remodélise et on l'imprime.",
   },
@@ -90,7 +91,7 @@ export const products: Product[] = [
     slug: "organiseur-tiroir",
     name: "Organiseur de tiroir",
     category: "Maison",
-    price: "dès 9 €",
+    priceCents: 900,
     material: "PLA",
     text: "Modulable, aux dimensions exactes de votre tiroir.",
   },
@@ -98,7 +99,7 @@ export const products: Product[] = [
     slug: "crochets-muraux",
     name: "Crochets muraux",
     category: "Maison",
-    price: "dès 6 €",
+    priceCents: 600,
     material: "PETG",
     text: "Robustes et discrets, lot de 4. Couleur au choix.",
   },
@@ -106,7 +107,7 @@ export const products: Product[] = [
     slug: "support-casque",
     name: "Support de casque",
     category: "Bureau",
-    price: "dès 15 €",
+    priceCents: 1500,
     material: "PLA",
     text: "Se fixe sous le bureau, libère de la place.",
   },
@@ -114,7 +115,7 @@ export const products: Product[] = [
     slug: "passe-cables",
     name: "Passe-câbles",
     category: "Bureau",
-    price: "dès 5 €",
+    priceCents: 500,
     material: "PLA",
     text: "Fini les câbles qui tombent derrière le bureau. Lot de 6.",
   },
@@ -122,7 +123,7 @@ export const products: Product[] = [
     slug: "pieces-detachees",
     name: "Pièce de rechange",
     category: "Pratique",
-    price: "sur devis",
+    priceCents: null,
     material: "Selon usage",
     text: "Électroménager, jouet, meuble : on recrée la pièce qui manque.",
   },
@@ -159,3 +160,25 @@ export const faq = [
     a: "Une fois le devis validé, on vous envoie les modalités de paiement par email avant de lancer l'impression.",
   },
 ];
+
+export function formatPrice(cents: number | null) {
+  if (cents === null) return "Sur devis";
+  return new Intl.NumberFormat("fr-FR", { style: "currency", currency: "EUR" }).format(cents / 100);
+}
+
+// Statuts d'une commande, dans l'ordre du suivi. « annulée » est à part.
+export const orderStatuses = ["reçue", "devis envoyé", "en impression", "terminée", "annulée"] as const;
+export type OrderStatus = (typeof orderStatuses)[number];
+
+// Référence courte d'une commande, à communiquer au client (#A1B2C3D4).
+export const orderRef = (id: string) => `#${id.slice(0, 8).toUpperCase()}`;
+
+export const reportCategories = [
+  { id: "commande", label: "Une commande" },
+  { id: "site", label: "Le site" },
+  { id: "compte", label: "Mon compte" },
+  { id: "autre", label: "Autre chose" },
+] as const;
+
+// Matériaux possibles pour une bobine de filament (stock du gestionnaire).
+export const filamentMaterials = ["PLA", "PETG", "ABS", "ASA", "TPU", "Autre"] as const;

@@ -3,7 +3,13 @@
 import { startTransition, useActionState, useState } from "react";
 import { CheckCircle2, LoaderCircle, Paperclip } from "lucide-react";
 import { sendRequest, type RequestState } from "./actions";
-import { MAX_FILES_BYTES, materials, products, requestTypes, type RequestType } from "@/lib/site";
+import Link from "next/link";
+import { MAX_FILES_BYTES, formatPrice, materials, products, requestTypes, type RequestType } from "@/lib/site";
+
+// Seuls les articles à prix fixe se commandent directement.
+const orderable = products.filter((p) => p.priceCents !== null);
+
+export type FormUser = { name: string; email: string } | null;
 
 const field =
   "w-full rounded-lg border border-line-strong bg-panel-2 px-3.5 py-2.5 text-[15px] text-fg outline-none transition placeholder:text-muted/60 focus:border-accent focus:ring-4 focus:ring-accent/15 aria-[invalid=true]:border-red-500";
@@ -25,10 +31,25 @@ const placeholders: Record<RequestType, string> = {
   projet: "Votre idée, à quoi elle sert, les quantités envisagées, une échéance…",
 };
 
-export default function RequestForm({ initialType, initialArticle }: { initialType: RequestType; initialArticle?: string }) {
+export default function RequestForm({
+  initialType,
+  initialArticle,
+  initialDetails,
+  user,
+  loginHref,
+  requireLogin,
+}: {
+  initialType: RequestType;
+  initialArticle?: string;
+  initialDetails?: string;
+  user: FormUser;
+  loginHref: string;
+  requireLogin: boolean;
+}) {
   const [state, action, pending] = useActionState<RequestState, FormData>(sendRequest, { status: "idle" });
   const [type, setType] = useState<RequestType>(initialType);
   const [fileNames, setFileNames] = useState<string[]>([]);
+  const [delivery, setDelivery] = useState<"livraison" | "retrait">("livraison");
   const [fileError, setFileError] = useState<string>();
 
   if (state.status === "success") {
@@ -37,6 +58,11 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
         <CheckCircle2 className="mx-auto size-14 text-emerald-400" strokeWidth={1.5} aria-hidden />
         <p className="mt-5 text-3xl font-medium tracking-tight">Demande envoyée.</p>
         <p className="mt-2 text-lg text-muted">Merci ! On revient vers vous sous 48 heures.</p>
+        {state.saved && (
+          <Link href="/compte" className="mt-6 inline-flex text-sm font-medium text-accent-2 hover:text-white">
+            Suivre ma demande dans mon compte →
+          </Link>
+        )}
       </div>
     );
   }
@@ -93,14 +119,29 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
         <p className="mt-2 text-sm text-muted">{requestTypes.find((t) => t.id === type)!.text}</p>
       </fieldset>
 
+      {type === "commande" && requireLogin ? (
+        <div className="rounded-xl border border-line-strong bg-panel-2 p-6 text-center">
+          <p className="text-lg font-medium tracking-tight">Connectez-vous pour commander.</p>
+          <p className="mx-auto mt-2 max-w-sm text-sm text-muted">
+            Votre commande sera enregistrée dans votre compte, avec vos favoris et votre historique.
+          </p>
+          <Link
+            href={loginHref}
+            className="shine mt-5 inline-flex rounded-lg bg-gradient-to-b from-accent-2 to-accent px-5 py-2.5 text-sm font-medium text-white"
+          >
+            Se connecter ou créer un compte
+          </Link>
+        </div>
+      ) : (
+        <>
       {type === "commande" && (
         <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
           <div>
             <label htmlFor="article" className={label}>Article</label>
-            <select id="article" name="article" defaultValue={initialArticle ?? products[0].slug} className={field}>
-              {products.map((p) => (
+            <select id="article" name="article" defaultValue={orderable.some((p) => p.slug === initialArticle) ? initialArticle : orderable[0].slug} className={field}>
+              {orderable.map((p) => (
                 <option key={p.slug} value={p.slug}>
-                  {p.name} · {p.price}
+                  {p.name} · {formatPrice(p.priceCents)}
                 </option>
               ))}
             </select>
@@ -120,6 +161,7 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
           id="details"
           name="details"
           rows={5}
+          defaultValue={initialDetails}
           placeholder={placeholders[type]}
           aria-invalid={!!e.details}
           aria-describedby={e.details ? "details-err" : undefined}
@@ -181,6 +223,7 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
           <input
             id="name"
             name="name"
+            defaultValue={user?.name}
             autoComplete="name"
             aria-invalid={!!e.name}
             aria-describedby={e.name ? "name-err" : undefined}
@@ -193,6 +236,7 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
           <input
             id="email"
             name="email"
+            defaultValue={user?.email}
             type="email"
             autoComplete="email"
             aria-invalid={!!e.email}
@@ -209,6 +253,58 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
         </div>
       </div>
 
+      <fieldset className="space-y-4">
+        <legend className={label}>Réception</legend>
+        <div className="grid grid-cols-2 gap-1 rounded-lg border border-line bg-bg p-1">
+          {(
+            [
+              ["livraison", "Livraison"],
+              ["retrait", "Retrait en main propre"],
+            ] as const
+          ).map(([id, text]) => (
+            <label
+              key={id}
+              className="cursor-pointer rounded-md px-2 py-2 text-center text-sm text-muted transition-colors has-[:checked]:bg-panel-2 has-[:checked]:text-fg has-[:checked]:shadow-[inset_0_0_0_1px_rgb(255_255_255/0.12)]"
+            >
+              <input
+                type="radio"
+                name="delivery"
+                value={id}
+                checked={delivery === id}
+                onChange={() => setDelivery(id)}
+                className="sr-only"
+              />
+              {text}
+            </label>
+          ))}
+        </div>
+        {delivery === "livraison" && (
+          <div className="grid gap-4 sm:grid-cols-[1fr_140px_1fr]">
+            <div className="sm:col-span-3">
+              <label htmlFor="address" className={label}>Adresse</label>
+              <input
+                id="address"
+                name="address"
+                autoComplete="street-address"
+                placeholder="12 rue des Lilas"
+                aria-invalid={!!e.address}
+                aria-describedby={e.address ? "address-err" : undefined}
+                className={field}
+              />
+              <FieldError id="address-err" msg={e.address} />
+            </div>
+            <div className="sm:col-start-1">
+              <label htmlFor="postal_code" className={label}>Code postal</label>
+              <input id="postal_code" name="postal_code" autoComplete="postal-code" inputMode="numeric" className={field} />
+            </div>
+            <div className="sm:col-span-2">
+              <label htmlFor="city" className={label}>Ville</label>
+              <input id="city" name="city" autoComplete="address-level2" className={field} />
+            </div>
+          </div>
+        )}
+      </fieldset>
+
       {state.message && (
         <p role="alert" className="rounded-lg border border-red-500/30 bg-red-500/10 px-4 py-3 text-sm text-red-300">
           {state.message}
@@ -223,6 +319,8 @@ export default function RequestForm({ initialType, initialArticle }: { initialTy
         {pending && <LoaderCircle size={18} className="animate-spin" aria-hidden />}
         {pending ? "Envoi…" : type === "commande" ? "Envoyer la commande" : "Demander un devis gratuit"}
       </button>
+        </>
+      )}
     </form>
   );
 }

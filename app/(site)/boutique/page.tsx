@@ -1,6 +1,8 @@
 import type { Metadata } from "next";
 import { FinalCta, ProductCard } from "@/components/sections";
 import { Container, Eyebrow } from "@/components/ui";
+import { getFavoriteSlugs } from "@/lib/favorites";
+import { authEnabled } from "@/lib/supabase/server";
 import { products, type Category } from "@/lib/site";
 
 export const metadata: Metadata = {
@@ -10,7 +12,9 @@ export const metadata: Metadata = {
 
 const order: Category[] = ["Auto", "Maison", "Bureau", "Pratique"];
 
-export default function BoutiquePage() {
+export default async function BoutiquePage() {
+  const favorites = await getFavoriteSlugs();
+
   return (
     <>
       <section className="grid-bg relative overflow-hidden pb-20 pt-20 text-center sm:pt-28">
@@ -47,7 +51,7 @@ export default function BoutiquePage() {
                 </h2>
                 <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
                   {items.map((p, i) => (
-                    <ProductCard key={p.slug} product={p} index={i} />
+                    <ProductCard key={p.slug} product={p} index={i} favorite={favorites.has(p.slug)} showFavorite={authEnabled} />
                   ))}
                 </div>
               </div>

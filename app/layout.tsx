@@ -1,8 +1,6 @@
 import type { Metadata } from "next";
 import { Geist, Geist_Mono } from "next/font/google";
 import { Analytics } from "@vercel/analytics/next";
-import Header from "@/components/Header";
-import Footer from "@/components/Footer";
 import { RevealObserver } from "@/components/motion";
 import { site } from "@/lib/site";
 import "./globals.css";
@@ -26,11 +24,9 @@ export const metadata: Metadata = {
 
 export default function RootLayout({ children }: { children: React.ReactNode }) {
   return (
-    <html lang="fr" className={`${geist.variable} ${geistMono.variable}`}>
+    <html lang="fr" className={`${geist.variable} ${geistMono.variable}`} data-scroll-behavior="smooth">
       <body className="flex min-h-screen flex-col antialiased">
-        <Header />
-        <main className="flex-1">{children}</main>
-        <Footer />
+        {children}
         <RevealObserver />
         <Analytics />
       </body>
