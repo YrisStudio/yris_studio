@@ -19,7 +19,7 @@ import { advanceOrder, setMonthlyGoal } from "./actions";
 import PageHeader from "./PageHeader";
 import { Spotlight } from "@/components/motion";
 import { Mono } from "@/components/ui";
-import { requireAdmin } from "@/lib/admin";
+import { countsInStats, getStatsResetAt, requireAdmin } from "@/lib/admin";
 import { getAllOrders, isOpen, orderAmount, type AdminOrder } from "@/lib/orders";
 import { formatPrice, orderRef, products } from "@/lib/site";
 import { getStock, isLow } from "@/lib/stock";
@@ -87,13 +87,14 @@ function SeeAll({ href, children = "Tout voir" }: { href: string; children?: Rea
 export default async function AdminDashboard() {
   await requireAdmin();
   const supabase = await createClient();
-  const [orders, stock, reportsRes, favRes, goalRes, signupsRes] = await Promise.all([
+  const [orders, stock, reportsRes, favRes, goalRes, signupsRes, resetAt] = await Promise.all([
     getAllOrders(),
     getStock(),
     supabase.from("reports").select("id, name, created_at, category, status").order("created_at", { ascending: false }).limit(20),
     supabase.from("favorites").select("product_slug"),
     supabase.from("admin_settings").select("value").eq("key", "monthly_goal_cents").maybeSingle(),
     supabase.rpc("admin_recent_signups", { lim: 10 }),
+    getStatsResetAt(),
   ]);
   const reports = (reportsRes.data ?? []) as (Report & { status: string })[];
   const favorites = (favRes.data ?? []) as { product_slug: string }[];
@@ -105,7 +106,8 @@ export default async function AdminDashboard() {
   const sameMonth = (d: Date, ref: Date) => d.getMonth() === ref.getMonth() && d.getFullYear() === ref.getFullYear();
   const doneAt = (o: AdminOrder) => new Date(o.updated_at ?? o.created_at);
 
-  const done = orders.filter((o) => o.status === "terminée");
+  // Seules les commandes terminées depuis la dernière remise à zéro comptent dans les chiffres.
+  const done = orders.filter((o) => countsInStats(o, resetAt));
   const open = orders.filter((o) => isOpen(o.status));
   const revenue = done.reduce((n, o) => n + orderAmount(o), 0);
   const pipeline = open.reduce((n, o) => n + orderAmount(o), 0);
@@ -182,7 +184,7 @@ export default async function AdminDashboard() {
     if (!key) continue;
     const c = clients.get(key) ?? { name: o.customer_name ?? "Client", email: o.customer_email ?? "", count: 0, spent: 0 };
     c.count += 1;
-    if (o.status === "terminée") c.spent += orderAmount(o);
+    if (countsInStats(o, resetAt)) c.spent += orderAmount(o);
     clients.set(key, c);
   }
   const loyal = [...clients.values()]
@@ -422,7 +424,7 @@ export default async function AdminDashboard() {
               <ul className="divide-y divide-line">
                 {loyal.map((c) => (
                   <li key={c.email || c.name} className="flex items-center gap-3 py-2.5">
-                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent-2 to-accent text-xs font-medium text-white">
+                    <span className="grid size-8 shrink-0 place-items-center rounded-full bg-gradient-to-br from-accent-2 to-accent text-xs font-medium text-on-accent">
                       {c.name.charAt(0).toUpperCase()}
                     </span>
                     <span className="min-w-0 flex-1">

@@ -109,7 +109,7 @@ export default function Home() {
             ))}
 
             <div data-reveal style={stagger(3)}>
-              <div className="flex h-full flex-col justify-between rounded-2xl bg-[#0a0a0b] p-6 text-white">
+              <div className="flex h-full flex-col justify-between rounded-2xl bg-[#0e0a1a] p-6 text-white">
                 <Mono className="text-white/50">Devis</Mono>
                 <p className="mt-6 text-7xl font-medium tracking-tight">
                   <CountUp to={48} />

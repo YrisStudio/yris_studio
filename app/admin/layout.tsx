@@ -22,7 +22,7 @@ export default async function AdminLayout({ children }: { children: React.ReactN
   const orders = () => supabase.from("orders").select("id", { count: "exact", head: true });
   const reports = () => supabase.from("reports").select("id", { count: "exact", head: true });
 
-  const [open, done, cancelled, all, reportsNew, reportsDone, stock] = await Promise.all([
+  const [open, done, cancelled, all, reportsNew, reportsDone, stock, todos] = await Promise.all([
     count(orders().not("status", "in", CLOSED)),
     count(orders().eq("status", "terminée")),
     count(orders().eq("status", "annulée")),
@@ -30,8 +30,9 @@ export default async function AdminLayout({ children }: { children: React.ReactN
     count(reports().eq("status", "nouveau")),
     count(reports().eq("status", "traité")),
     getStock(),
+    count(supabase.from("admin_todos").select("id", { count: "exact", head: true }).eq("done", false)),
   ]);
-  const counts: AdminCounts = { open, done, cancelled, all, reportsNew, reportsDone, lowStock: stock.filter(isLow).length };
+  const counts: AdminCounts = { open, done, cancelled, all, reportsNew, reportsDone, lowStock: stock.filter(isLow).length, todos };
 
   return (
     <div className="flex min-h-screen flex-1">

@@ -56,7 +56,7 @@ function Tracker({ status }: { status: string }) {
               title={s}
               className={`relative grid size-6 place-items-center rounded-full border text-[10px] transition-colors ${
                 done
-                  ? "border-accent bg-accent text-white"
+                  ? "border-accent bg-accent text-on-accent"
                   : active
                     ? "border-accent bg-accent/10 text-accent"
                     : "border-line-strong text-muted"
@@ -109,7 +109,7 @@ export default async function ComptePage() {
         <Container className="relative">
           <div className="flex flex-wrap items-center justify-between gap-6 animate-rise">
             <div className="flex items-center gap-5">
-              <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-accent-2 to-accent text-2xl font-medium text-white shadow-[0_12px_40px_-12px_rgb(242_84_45/0.8)] sm:size-20 sm:text-3xl">
+              <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-accent-2 to-accent text-2xl font-medium text-on-accent shadow-[0_12px_40px_-12px_rgb(139_92_246/0.8)] sm:size-20 sm:text-3xl">
                 {initial}
               </span>
               <div>
@@ -125,7 +125,7 @@ export default async function ComptePage() {
               {admin && (
                 <Link
                   href="/admin"
-                  className="shine inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-4 text-sm font-medium text-white shadow-[0_8px_30px_-8px_rgb(242_84_45/0.7)] transition hover:brightness-110"
+                  className="shine inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-4 text-sm font-medium text-on-accent shadow-[0_8px_30px_-8px_rgb(139_92_246/0.7)] transition hover:brightness-110"
                 >
                   <ShieldCheck size={16} aria-hidden />
                   Espace administrateur

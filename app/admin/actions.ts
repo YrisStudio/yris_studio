@@ -37,3 +37,24 @@ export async function setMonthlyGoal(formData: FormData) {
   if (error) console.error("Objectif :", error.message);
   revalidatePath("/admin");
 }
+
+// Paramètres : remet à zéro le chiffre d'affaires (les commandes ne sont pas supprimées).
+export async function resetStats() {
+  if (!(await isAdmin())) return;
+  const supabase = await createClient();
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("admin_settings").upsert({ key: "stats_reset_at", value: now, updated_at: now });
+  if (error) console.error("Remise à zéro :", error.message);
+  revalidatePath("/admin", "layout");
+}
+
+// Annule la remise à zéro : tous les chiffres reviennent.
+export async function restoreStats() {
+  if (!(await isAdmin())) return;
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("admin_settings")
+    .upsert({ key: "stats_reset_at", value: false, updated_at: new Date().toISOString() });
+  if (error) console.error("Restauration :", error.message);
+  revalidatePath("/admin", "layout");
+}

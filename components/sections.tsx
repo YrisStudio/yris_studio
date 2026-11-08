@@ -43,7 +43,7 @@ export function ProductCard({
           <span className={`font-mono text-sm ${onQuote ? "text-muted" : "text-fg"}`}>{formatPrice(product.priceCents)}</span>
           <Link
             href={onQuote ? `/demande?type=sur-mesure&article=${product.slug}` : `/demande?type=commande&article=${product.slug}`}
-            className="rounded-lg border border-line-strong bg-panel-2 px-3.5 py-1.5 text-sm transition-colors hover:border-accent hover:bg-accent hover:text-white"
+            className="rounded-lg border border-line-strong bg-panel-2 px-3.5 py-1.5 text-sm transition-colors hover:border-accent hover:bg-accent hover:text-on-accent"
           >
             {onQuote ? "Demander un devis" : "Commander"}
           </Link>
@@ -174,7 +174,7 @@ export function Faq() {
                 {item.q}
                 <span
                   aria-hidden
-                  className="grid size-7 shrink-0 place-items-center rounded-md border border-line text-muted transition-all duration-300 group-open:rotate-45 group-open:border-accent group-open:bg-accent group-open:text-white"
+                  className="grid size-7 shrink-0 place-items-center rounded-md border border-line text-muted transition-all duration-300 group-open:rotate-45 group-open:border-accent group-open:bg-accent group-open:text-on-accent"
                 >
                   +
                 </span>

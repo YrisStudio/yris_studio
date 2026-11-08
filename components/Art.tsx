@@ -78,15 +78,15 @@ export function QuoteDashboard() {
               <line key={y} x1="0" x2="300" y1={y} y2={y} stroke="currentColor" strokeOpacity="0.07" />
             ))}
             <path d={`${path} L300,100 L0,100 Z`} fill="url(#fill)" />
-            <path d={path} fill="none" stroke="#f2542d" strokeWidth="2" className="draw-path" />
+            <path d={path} fill="none" stroke="#8b5cf6" strokeWidth="2" className="draw-path" />
             <defs>
               <linearGradient id="fill" x1="0" x2="0" y1="0" y2="1">
-                <stop offset="0" stopColor="#f2542d" stopOpacity="0.35" />
-                <stop offset="1" stopColor="#f2542d" stopOpacity="0" />
+                <stop offset="0" stopColor="#8b5cf6" stopOpacity="0.35" />
+                <stop offset="1" stopColor="#8b5cf6" stopOpacity="0" />
               </linearGradient>
             </defs>
             <line x1="191" x2="191" y1="0" y2="100" stroke="rgb(255 255 255 / 0.3)" strokeDasharray="3 3" />
-            <circle cx="191" cy={100 - 60 * 0.9} r="4" fill="#0a0a0b" stroke="#ff8a4c" strokeWidth="2" />
+            <circle cx="191" cy={100 - 60 * 0.9} r="4" fill="#0e0a1a" stroke="#a78bfa" strokeWidth="2" />
           </svg>
           <div className="mt-2 flex justify-between font-mono text-[10px] text-muted">
             <span>0 h</span>
@@ -151,7 +151,7 @@ export function StepQuote() {
       <div className="mb-3 flex h-5 overflow-hidden rounded-sm">
         <span className="w-[46%] bg-accent" />
         <span className="w-[24%] bg-accent-2" />
-        <span className="w-[18%] bg-[#a8542f]" />
+        <span className="w-[18%] bg-[#6d28d9]" />
         <span className="flex-1 bg-fg/15" />
       </div>
       {rows.map((r) => (
@@ -176,15 +176,15 @@ export function StepPrint() {
         <span className="font-mono text-[11px] text-emerald-400">64 %</span>
       </div>
       <svg viewBox="0 0 200 80" className="mt-3 w-full">
-        <rect x="20" y="10" width="160" height="5" rx="2" fill="#3a3a3f" />
+        <rect x="20" y="10" width="160" height="5" rx="2" fill="#3b3150" />
         <g className="animate-head">
-          <rect x="84" y="2" width="32" height="20" rx="4" fill="#2a2a2e" stroke="currentColor" strokeOpacity="0.15" />
-          <path d="M96 22h8l-4 6z" fill="#ff8a4c" />
+          <rect x="84" y="2" width="32" height="20" rx="4" fill="#2a2140" stroke="currentColor" strokeOpacity="0.15" />
+          <path d="M96 22h8l-4 6z" fill="#a78bfa" />
         </g>
         {[0, 1, 2, 3, 4].map((i) => (
-          <rect key={i} x={70 + i * 2} y={66 - i * 7} width={60 - i * 4} height="6" rx="2" fill="#f2542d" opacity={1 - i * 0.12} />
+          <rect key={i} x={70 + i * 2} y={66 - i * 7} width={60 - i * 4} height="6" rx="2" fill="#8b5cf6" opacity={1 - i * 0.12} />
         ))}
-        <rect x="40" y="72" width="120" height="5" rx="2" fill="#3a3a3f" />
+        <rect x="40" y="72" width="120" height="5" rx="2" fill="#3b3150" />
       </svg>
       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-fg/10">
         <span className="grow-x block h-full w-[64%] rounded-full bg-gradient-to-r from-accent to-accent-2" />
@@ -205,7 +205,7 @@ export function CarPartCard() {
         <Mono className="mt-3 block">Pièce d&apos;origine</Mono>
         <p className="font-mono text-sm text-fg">Introuvable · arrêt de fabrication</p>
       </div>
-      <div className="relative mt-4 overflow-hidden rounded-xl border border-line-strong bg-gradient-to-br from-[#2a2a2e] via-[#1a1a1d] to-[#111113] p-5">
+      <div className="relative mt-4 overflow-hidden rounded-xl border border-line-strong bg-gradient-to-br from-[#2a2140] via-[#1c1533] to-[#151026] p-5">
         <div className="flex items-center justify-between">
           <span className="font-mono text-[11px] tracking-[0.3em] text-fg/80">YRIS</span>
           <span className="rounded-md bg-emerald-500/15 px-2 py-0.5 font-mono text-[10px] text-emerald-400">Recréée</span>
@@ -214,13 +214,13 @@ export function CarPartCard() {
           <path
             d="M30 70 L30 40 Q30 25 45 25 L90 25 L100 12 L125 12 L135 25 L160 25 Q172 25 172 40 L172 70 Z"
             fill="none"
-            stroke="#ff8a4c"
+            stroke="#a78bfa"
             strokeWidth="1.5"
           />
           <circle cx="62" cy="48" r="9" fill="none" stroke="rgb(255 255 255 / 0.35)" strokeWidth="1.5" />
           <circle cx="140" cy="48" r="9" fill="none" stroke="rgb(255 255 255 / 0.35)" strokeWidth="1.5" />
           <line x1="30" x2="172" y1="82" y2="82" stroke="rgb(255 255 255 / 0.2)" strokeDasharray="3 3" />
-          <text x="101" y="88" textAnchor="middle" fill="#8b8b92" fontSize="7" fontFamily="monospace">
+          <text x="101" y="88" textAnchor="middle" fill="#9a90b8" fontSize="7" fontFamily="monospace">
             42,0 mm
           </text>
         </svg>

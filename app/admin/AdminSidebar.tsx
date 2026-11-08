@@ -10,10 +10,12 @@ import {
   Cylinder,
   LayoutDashboard,
   ListOrdered,
+  ListTodo,
   LogOut,
   Menu,
   MessageSquareWarning,
   RotateCcw,
+  Settings,
   UserRound,
   Users,
   X,
@@ -30,6 +32,7 @@ export type AdminCounts = {
   reportsNew: number;
   reportsDone: number;
   lowStock: number;
+  todos: number;
 };
 
 type Item = { href: string; label: string; icon: LucideIcon; count?: number; alert?: boolean };
@@ -40,7 +43,13 @@ export default function AdminSidebar({ counts, email }: { counts: AdminCounts; e
   const [open, setOpen] = useState(false);
 
   const groups: { title: string; items: Item[] }[] = [
-    { title: "Pilotage", items: [{ href: "/admin", label: "Tableau de bord", icon: LayoutDashboard }] },
+    {
+      title: "Pilotage",
+      items: [
+        { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard },
+        { href: "/admin/todo", label: "To-do list", icon: ListTodo, count: counts.todos, alert: counts.todos > 0 },
+      ],
+    },
     {
       title: "Commandes",
       items: [
@@ -70,6 +79,7 @@ export default function AdminSidebar({ counts, email }: { counts: AdminCounts; e
         { href: "/admin/signalements?vue=traites", label: "Traités", icon: RotateCcw, count: counts.reportsDone },
       ],
     },
+    { title: "Réglages", items: [{ href: "/admin/parametres", label: "Paramètres", icon: Settings }] },
   ];
 
   // Lien actif : même chemin, et même filtre quand il y en a un (statut ou vue, avec leur valeur par défaut).
@@ -119,7 +129,7 @@ export default function AdminSidebar({ counts, email }: { counts: AdminCounts; e
                       {it.count !== undefined && (
                         <span
                           className={`min-w-6 rounded-md px-1.5 py-0.5 text-center font-mono text-[11px] ${
-                            it.alert ? "bg-accent text-white" : "bg-white/5 text-muted"
+                            it.alert ? "bg-accent text-on-accent" : "bg-white/5 text-muted"
                           }`}
                         >
                           {it.count}
@@ -144,7 +154,7 @@ export default function AdminSidebar({ counts, email }: { counts: AdminCounts; e
           Mon compte
         </Link>
         <div className="mt-3 flex items-center gap-3 rounded-lg border border-line px-3 py-2.5">
-          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-accent-2 to-accent text-sm font-medium text-white">
+          <span className="grid size-8 shrink-0 place-items-center rounded-md bg-gradient-to-br from-accent-2 to-accent text-sm font-medium text-on-accent">
             {email.charAt(0).toUpperCase()}
           </span>
           <span className="min-w-0 flex-1 truncate font-mono text-[11px] text-muted">{email}</span>

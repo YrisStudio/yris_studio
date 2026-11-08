@@ -8,12 +8,12 @@ export function Container({ children, className = "" }: { children: React.ReactN
 const btn =
   "inline-flex items-center gap-1.5 rounded-lg px-5 py-2.5 text-sm font-medium transition focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-accent";
 
-// Bouton principal orange, et bouton secondaire sombre avec chevron.
+// Bouton principal violet, et bouton secondaire sombre avec chevron.
 export function PrimaryLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
       href={href}
-      className={`${btn} shine bg-gradient-to-b from-accent-2 to-accent text-white shadow-[0_8px_30px_-8px_rgb(242_84_45/0.7),inset_0_1px_0_rgb(255_255_255/0.25)] hover:brightness-110`}
+      className={`${btn} shine bg-gradient-to-b from-accent-2 to-accent text-on-accent shadow-[0_8px_30px_-8px_rgb(139_92_246/0.7),inset_0_1px_0_rgb(255_255_255/0.25)] hover:brightness-110`}
     >
       {children}
     </Link>

@@ -4,15 +4,16 @@
   --font-sans: var(--font-geist), ui-sans-serif, system-ui, sans-serif;
   --font-mono: var(--font-geist-mono), ui-monospace, monospace;
 
-  --color-bg: #0a0a0b;
-  --color-panel: #111113;
-  --color-panel-2: #18181b;
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-strong: rgb(255 255 255 / 0.14);
-  --color-fg: #ededee;
-  --color-muted: #8b8b92;
-  --color-accent: #f2542d;
-  --color-accent-2: #ff8a4c;
+  --color-bg: #0e0a1a;
+  --color-panel: #151026;
+  --color-panel-2: #1c1533;
+  --color-line: rgb(200 180 255 / 0.08);
+  --color-line-strong: rgb(200 180 255 / 0.15);
+  --color-fg: #efeaff;
+  --color-muted: #9a90b8;
+  --color-accent: #8b5cf6;
+  --color-accent-2: #a78bfa;
+  --color-on-accent: #ffffff;
 
   --animate-rise: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-head: head 4s ease-in-out infinite;
@@ -71,25 +72,27 @@ body {
 
 ::selection {
   background: var(--color-accent);
-  color: white;
+  color: var(--color-on-accent);
 }
 
 :root {
-  --grid-line: rgb(255 255 255 / 0.035);
-  --spot: rgb(242 84 45 / 0.14);
+  --grid-line: rgb(200 180 255 / 0.035);
+  --spot: rgb(139 92 246 / 0.12);
 }
 
 /* Section claire : on inverse les couleurs, tous les composants suivent. */
 .theme-light {
-  --color-bg: #ffffff;
-  --color-panel: #f4f4f5;
+  --color-bg: #faf8ff;
+  --color-panel: #f1ecfd;
   --color-panel-2: #ffffff;
-  --color-line: rgb(0 0 0 / 0.08);
-  --color-line-strong: rgb(0 0 0 / 0.14);
-  --color-fg: #0a0a0b;
-  --color-muted: #66666e;
-  --grid-line: rgb(0 0 0 / 0.04);
-  --spot: rgb(242 84 45 / 0.1);
+  --color-line: rgb(60 20 140 / 0.09);
+  --color-line-strong: rgb(60 20 140 / 0.16);
+  --color-fg: #1a1230;
+  --color-muted: #6b6385;
+  --color-accent: #8b5cf6;
+  --color-accent-2: #a78bfa;
+  --grid-line: rgb(60 20 140 / 0.05);
+  --spot: rgb(139 92 246 / 0.12);
   background: var(--color-bg);
   color: var(--color-fg);
   color-scheme: light;
@@ -97,15 +100,17 @@ body {
 
 /* Section sombre posée dans une zone claire (remet les couleurs d'origine). */
 .theme-dark {
-  --color-bg: #0a0a0b;
-  --color-panel: #111113;
-  --color-panel-2: #18181b;
-  --color-line: rgb(255 255 255 / 0.08);
-  --color-line-strong: rgb(255 255 255 / 0.14);
-  --color-fg: #ededee;
-  --color-muted: #8b8b92;
-  --grid-line: rgb(255 255 255 / 0.035);
-  --spot: rgb(242 84 45 / 0.14);
+  --color-bg: #0e0a1a;
+  --color-panel: #151026;
+  --color-panel-2: #1c1533;
+  --color-line: rgb(200 180 255 / 0.08);
+  --color-line-strong: rgb(200 180 255 / 0.15);
+  --color-fg: #efeaff;
+  --color-muted: #9a90b8;
+  --color-accent: #8b5cf6;
+  --color-accent-2: #a78bfa;
+  --grid-line: rgb(200 180 255 / 0.035);
+  --spot: rgb(139 92 246 / 0.12);
   background-color: var(--color-bg);
   color: var(--color-fg);
   color-scheme: dark;

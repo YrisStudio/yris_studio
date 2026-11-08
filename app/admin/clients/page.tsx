@@ -1,6 +1,6 @@
 import { Mail, Phone } from "lucide-react";
 import PageHeader from "../PageHeader";
-import { requireAdmin } from "@/lib/admin";
+import { countsInStats, getStatsResetAt, requireAdmin } from "@/lib/admin";
 import { getAllOrders, isOpen, orderAmount } from "@/lib/orders";
 import { formatPrice } from "@/lib/site";
 
@@ -23,7 +23,7 @@ const dateFmt = new Intl.DateTimeFormat("fr-FR", { day: "numeric", month: "short
 
 export default async function AdminClients() {
   await requireAdmin();
-  const orders = await getAllOrders();
+  const [orders, resetAt] = await Promise.all([getAllOrders(), getStatsResetAt()]);
 
   // On regroupe les commandes par client (email, sinon compte).
   const map = new Map<string, Client>();
@@ -45,7 +45,7 @@ export default async function AdminClients() {
       } satisfies Client);
     c.orders += 1;
     if (isOpen(o.status)) c.open += 1;
-    if (o.status === "terminée") c.spent += orderAmount(o);
+    if (countsInStats(o, resetAt)) c.spent += orderAmount(o);
     c.phone ??= o.phone;
     c.city ??= o.city;
     c.hasAccount ||= Boolean(o.user_id);
