@@ -21,7 +21,7 @@ export default async function ParametresPage() {
   return (
     <>
       <section className="grid-bg relative overflow-hidden pb-14 pt-16 sm:pt-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-64 max-w-3xl rounded-full bg-accent/10 blur-[140px]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-64 max-w-3xl rounded-full bg-fg/[0.05] blur-[140px]" />
         <Container className="relative max-w-[880px] animate-rise">
           <Link href="/compte" className="inline-flex items-center gap-1.5 text-sm text-muted transition-colors hover:text-fg">
             <ArrowLeft size={15} aria-hidden />

@@ -222,7 +222,7 @@ export default async function AdminDashboard() {
       <div className="space-y-4">
         {/* Objectif du mois */}
         <section className="theme-dark grid-bg relative overflow-hidden rounded-2xl p-6 sm:p-8">
-          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-accent/25 blur-[100px]" />
+          <div className="pointer-events-none absolute -right-20 -top-20 h-64 w-64 rounded-full bg-fg/[0.05] blur-[100px]" />
           <div className="relative flex flex-wrap items-end justify-between gap-6">
             <div>
               <Mono className="flex items-center gap-1.5 text-accent-2">

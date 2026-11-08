@@ -10,15 +10,16 @@ import { nav } from "@/lib/site";
 export default function Header() {
   const pathname = usePathname();
   const [open, setOpen] = useState(false);
-  const loggedIn = useLoggedIn();
+  const loggedIn = useLoggedIn(pathname);
   const account = loggedIn
     ? { href: "/compte", label: "Mon compte" }
     : { href: `/connexion?next=${encodeURIComponent(pathname)}`, label: "Connexion" };
 
   return (
     <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-xl">
-      <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:px-6">
-        <Link href="/" className="font-mono text-sm font-medium tracking-[0.3em]" aria-label="Yris, accueil">
+      {/* Trois colonnes (1fr · auto · 1fr) : les liens sont centrés sur la page, quelle que soit la largeur du logo ou des boutons. */}
+      <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]">
+        <Link href="/" className="justify-self-start font-mono text-sm font-medium tracking-[0.3em]" aria-label="Yris, accueil">
           YRIS
         </Link>
 
@@ -35,7 +36,7 @@ export default function Header() {
           ))}
         </nav>
 
-        <div className="hidden items-center gap-2 md:flex">
+        <div className="hidden items-center gap-2 justify-self-end md:flex">
           {loggedIn !== null && (
             <Link
               href={account.href}
@@ -45,12 +46,15 @@ export default function Header() {
               {account.label}
             </Link>
           )}
-          <Link
-            href="/demande"
-            className="rounded-lg border border-line-strong bg-panel-2 px-4 py-2 text-sm transition-colors hover:bg-white/10"
-          >
-            Demander un devis
-          </Link>
+          {/* Aura daisyUI : une lueur verte tourne autour du bouton (couleur donnée par .nav-aura). */}
+          <div className="aura nav-aura">
+            <Link
+              href="/demande"
+              className="block rounded-lg bg-panel-2 px-4 py-2 text-sm text-fg transition-colors hover:bg-[#222220]"
+            >
+              Demander un devis
+            </Link>
+          </div>
         </div>
 
         <button
@@ -84,14 +88,30 @@ export default function Header() {
 }
 
 // null tant qu'on ne sait pas encore (ou si les comptes ne sont pas activés), puis true/false.
-function useLoggedIn() {
+// La connexion et la déconnexion se font côté serveur (cookies posés par une action serveur) :
+// le navigateur n'en est pas prévenu, et l'en-tête ne se recharge pas d'une page à l'autre.
+// On relit donc la session à chaque changement de page (lecture locale du cookie, sans requête).
+function useLoggedIn(pathname: string) {
   const [loggedIn, setLoggedIn] = useState<boolean | null>(null);
+
   useEffect(() => {
     const supabase = createClient();
     if (!supabase) return;
-    supabase.auth.getUser().then(({ data }) => setLoggedIn(Boolean(data.user)));
     const { data } = supabase.auth.onAuthStateChange((_event, session) => setLoggedIn(Boolean(session)));
     return () => data.subscription.unsubscribe();
   }, []);
+
+  useEffect(() => {
+    const supabase = createClient();
+    if (!supabase) return;
+    let cancelled = false;
+    supabase.auth.getSession().then(({ data }) => {
+      if (!cancelled) setLoggedIn(Boolean(data.session));
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [pathname]);
+
   return loggedIn;
 }

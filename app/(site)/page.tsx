@@ -18,7 +18,7 @@ export default function Home() {
     <>
       {/* Hero, noir */}
       <section className="grid-bg relative overflow-hidden pt-20 sm:pt-28">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-[420px] max-w-4xl animate-pulse rounded-full bg-accent/10 blur-[140px] [animation-duration:6s]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-[420px] max-w-4xl animate-pulse rounded-full bg-fg/[0.05] blur-[140px] [animation-duration:6s]" />
         <Container className="relative text-center">
           <div className="animate-rise">
             <Eyebrow>
@@ -65,7 +65,7 @@ export default function Home() {
 
       {/* Noir : pièces auto */}
       <section className="relative overflow-hidden py-28">
-        <div className="pointer-events-none absolute -right-40 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-accent/15 blur-[120px]" />
+        <div className="pointer-events-none absolute -right-40 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-fg/[0.05] blur-[120px]" />
         <Container className="relative grid items-center gap-16 md:grid-cols-2">
           <div data-reveal>
             <Eyebrow>Pièces auto</Eyebrow>
@@ -109,7 +109,7 @@ export default function Home() {
             ))}
 
             <div data-reveal style={stagger(3)}>
-              <div className="flex h-full flex-col justify-between rounded-2xl bg-[#0e0a1a] p-6 text-white">
+              <div className="flex h-full flex-col justify-between rounded-2xl bg-[#0b0b0a] p-6 text-white">
                 <Mono className="text-white/50">Devis</Mono>
                 <p className="mt-6 text-7xl font-medium tracking-tight">
                   <CountUp to={48} />

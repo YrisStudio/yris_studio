@@ -18,7 +18,7 @@ export default async function BoutiquePage() {
   return (
     <>
       <section className="grid-bg relative overflow-hidden pb-20 pt-20 text-center sm:pt-28">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-80 max-w-3xl rounded-full bg-accent/10 blur-[140px]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-80 max-w-3xl rounded-full bg-fg/[0.05] blur-[140px]" />
         <Container className="relative animate-rise">
           <Eyebrow>Boutique</Eyebrow>
           <h1 className="mt-6 text-5xl font-medium tracking-tight sm:text-6xl">Imprimé à la commande.</h1>

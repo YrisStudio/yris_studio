@@ -167,20 +167,17 @@ export function Faq() {
         <div data-reveal>
           <SectionTitle eyebrow="FAQ" title="Questions fréquentes." />
         </div>
-        <div className="divide-y divide-line border-y border-line">
+        {/* Accordéon daisyUI : un seul élément ouvert à la fois (même name), contenu trouvable avec Ctrl+F. */}
+        <div className="space-y-2">
           {faq.map((item, i) => (
-            <details key={item.q} className="group py-5" data-reveal style={stagger(i, 70)}>
-              <summary className="flex cursor-pointer list-none items-center justify-between gap-4 font-medium transition-colors hover:text-accent [&::-webkit-details-marker]:hidden">
-                {item.q}
-                <span
-                  aria-hidden
-                  className="grid size-7 shrink-0 place-items-center rounded-md border border-line text-muted transition-all duration-300 group-open:rotate-45 group-open:border-accent group-open:bg-accent group-open:text-on-accent"
-                >
-                  +
-                </span>
-              </summary>
-              <p className="mt-3 pr-10 text-sm leading-relaxed text-muted">{item.a}</p>
-            </details>
+            <div key={item.q} data-reveal style={stagger(i, 70)}>
+              <details name="faq" className="faq-item collapse collapse-plus">
+                <summary className="collapse-title">{item.q}</summary>
+                <div className="collapse-content">
+                  <p>{item.a}</p>
+                </div>
+              </details>
+            </div>
           ))}
         </div>
       </Container>
@@ -193,7 +190,7 @@ export function FinalCta() {
     // Le fond blanc derrière laisse voir l'arrondi des coins du haut.
     <div className="theme-light">
       <section className="theme-dark grid-bg relative overflow-hidden rounded-t-[2.5rem] py-32 text-center sm:rounded-t-[3.5rem]">
-        <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-72 max-w-3xl animate-pulse rounded-full bg-accent/25 blur-[120px] [animation-duration:5s]" />
+        <div className="pointer-events-none absolute inset-x-0 bottom-0 mx-auto h-72 max-w-3xl animate-pulse rounded-full bg-fg/[0.05] blur-[120px] [animation-duration:5s]" />
         <Container className="relative" >
           <div data-reveal>
             <Eyebrow>Devis gratuit</Eyebrow>

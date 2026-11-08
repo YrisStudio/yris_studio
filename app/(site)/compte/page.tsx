@@ -105,11 +105,11 @@ export default async function ComptePage() {
   return (
     <>
       <section className="grid-bg relative overflow-hidden pb-16 pt-16 sm:pt-20">
-        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-72 max-w-3xl rounded-full bg-accent/10 blur-[140px]" />
+        <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-72 max-w-3xl rounded-full bg-fg/[0.05] blur-[140px]" />
         <Container className="relative">
           <div className="flex flex-wrap items-center justify-between gap-6 animate-rise">
             <div className="flex items-center gap-5">
-              <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-accent-2 to-accent text-2xl font-medium text-on-accent shadow-[0_12px_40px_-12px_rgb(139_92_246/0.8)] sm:size-20 sm:text-3xl">
+              <span className="grid size-16 shrink-0 place-items-center rounded-2xl bg-gradient-to-br from-accent-2 to-accent text-2xl font-medium text-on-accent shadow-[0_12px_40px_-12px_rgb(74_222_128/0.8)] sm:size-20 sm:text-3xl">
                 {initial}
               </span>
               <div>
@@ -125,7 +125,7 @@ export default async function ComptePage() {
               {admin && (
                 <Link
                   href="/admin"
-                  className="shine inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-4 text-sm font-medium text-on-accent shadow-[0_8px_30px_-8px_rgb(139_92_246/0.7)] transition hover:brightness-110"
+                  className="shine inline-flex h-10 items-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-4 text-sm font-medium text-on-accent shadow-[0_8px_30px_-8px_rgb(74_222_128/0.7)] transition hover:brightness-110"
                 >
                   <ShieldCheck size={16} aria-hidden />
                   Espace administrateur

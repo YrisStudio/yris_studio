@@ -64,7 +64,7 @@ export default async function AdminTodo({ searchParams }: { searchParams: Promis
 
       {/* Progression globale */}
       <section className="theme-dark grid-bg relative mb-4 overflow-hidden rounded-2xl p-5 sm:p-6">
-        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-accent/30 blur-[90px]" />
+        <div className="pointer-events-none absolute -right-16 -top-16 h-48 w-48 rounded-full bg-fg/[0.05] blur-[90px]" />
         <div className="relative flex items-end justify-between gap-4">
           <div>
             <p className="font-mono text-[11px] uppercase tracking-wider text-accent-2">Progression</p>

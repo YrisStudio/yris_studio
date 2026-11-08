@@ -314,7 +314,7 @@ export default function RequestForm({
       <button
         type="submit"
         disabled={pending}
-        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-6 py-3 text-[15px] font-medium text-on-accent shadow-[0_8px_30px_-8px_rgb(139_92_246/0.7),inset_0_1px_0_rgb(255_255_255/0.25)] transition hover:brightness-110 disabled:opacity-60"
+        className="inline-flex w-full items-center justify-center gap-2 rounded-lg bg-gradient-to-b from-accent-2 to-accent px-6 py-3 text-[15px] font-medium text-on-accent shadow-[0_8px_30px_-8px_rgb(74_222_128/0.7),inset_0_1px_0_rgb(255_255_255/0.25)] transition hover:brightness-110 disabled:opacity-60"
       >
         {pending && <LoaderCircle size={18} className="animate-spin" aria-hidden />}
         {pending ? "Envoi…" : type === "commande" ? "Envoyer la commande" : "Demander un devis gratuit"}
