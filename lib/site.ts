@@ -3,7 +3,7 @@
 export const site = {
   name: "Yris",
   tagline: "Impression 3D à la demande",
-  url: "https://yris-studio.vercel.app",
+  url: process.env.NEXT_PUBLIC_SITE_URL ?? "https://www.yris-studio.com",
   description:
     "Yris imprime en 3D les pièces dont vous avez besoin : pièces auto, objets du quotidien, prototypes. Commandez, demandez un devis ou proposez votre projet.",
   email: "hello@yrisstudio.com",

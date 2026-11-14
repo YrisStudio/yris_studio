@@ -1,6 +1,7 @@
 "use server";
 
-import { MAX_FILES_BYTES, formatPrice, products, requestTypes, type RequestType } from "@/lib/site";
+import { emailEnabled, escapeHtml, notifyOwner, sendRequestConfirmation } from "@/lib/email";
+import { MAX_FILES_BYTES, formatPrice, orderRef, products, requestTypes, type RequestType } from "@/lib/site";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
 
 export type RequestState = {
@@ -14,9 +15,6 @@ export type RequestState = {
 const ALLOWED_EXT = /\.(stl|3mf|obj|step|stp|jpe?g|png|heic|webp|pdf)$/i;
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
 
 export async function sendRequest(_prev: RequestState, formData: FormData): Promise<RequestState> {
   // Champ piège invisible : un humain le laisse vide, un robot le remplit.
@@ -58,11 +56,16 @@ export async function sendRequest(_prev: RequestState, formData: FormData): Prom
   }
   const estimatedCents = type === "commande" && product?.priceCents ? product.priceCents * quantity : null;
 
+  const orderId = crypto.randomUUID();
+  const typeLabel = requestTypes.find((t) => t.id === type)!.title;
+  const where = delivery === "retrait" ? "Retrait en main propre" : `Livraison : ${address}, ${postalCode} ${city}`;
+
   // 1. On enregistre toutes les demandes (rattachées au compte du client s'il est connecté).
   let saved = false;
   if (authEnabled) {
     const supabase = await createClient();
     const { error } = await supabase.from("orders").insert({
+      id: orderId,
       user_id: user?.id ?? null,
       customer_name: name,
       customer_email: email,
@@ -85,69 +88,43 @@ export async function sendRequest(_prev: RequestState, formData: FormData): Prom
   }
 
   // 2. On vous envoie la demande par email, avec les fichiers joints.
-  const where = delivery === "retrait" ? "Retrait en main propre" : `Livraison : ${address}, ${postalCode} ${city}`;
-  const emailed = await sendEmail({ type, name, email, phone, material, quantity, details, product, estimatedCents, files, where });
+  const article = type === "commande" && product ? product.name : null;
+  const emailed = await notifyOwner({
+    subject: `${typeLabel} ${saved ? orderRef(orderId) : ""} : ${article ?? name}`,
+    replyTo: email,
+    body: details,
+    files,
+    rows: [
+      ["Type", typeLabel],
+      ...(saved ? ([["Référence", orderRef(orderId)]] as [string, string][]) : []),
+      ["Nom", name],
+      ["Email", email],
+      ["Téléphone", phone || "non précisé"],
+      ["Réception", where],
+      ...(article ? ([["Article", article]] as [string, string][]) : []),
+      ["Quantité", String(quantity)],
+      ...(estimatedCents ? ([["Total estimé", formatPrice(estimatedCents)]] as [string, string][]) : []),
+      ["Matériau", material || "à conseiller"],
+      ["Fichiers", files.length ? files.map((f) => f.name).join(", ") : "aucun"],
+    ],
+  });
 
   if (!saved && !emailed) {
     return { status: "error", message: "La demande n'a pas pu partir. Réessayez, ou écrivez-nous directement par email." };
   }
-  return { status: "success", saved: saved && Boolean(user) };
-}
 
-async function sendEmail(d: {
-  type: RequestType;
-  name: string;
-  email: string;
-  phone: string;
-  material: string;
-  quantity: number;
-  details: string;
-  product?: (typeof products)[number];
-  estimatedCents: number | null;
-  files: File[];
-  where: string;
-}) {
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_TO_EMAIL;
-  if (!apiKey || !to) {
-    console.error("Formulaire de demande : RESEND_API_KEY ou CONTACT_TO_EMAIL manquant.");
-    return false;
+  // 3. Confirmation au client, avec sa référence (seulement si la demande est bien enregistrée).
+  if (saved && emailEnabled()) {
+    const summary = [
+      article ? `${article} × ${quantity}` : details.slice(0, 160) + (details.length > 160 ? "…" : ""),
+      estimatedCents ? `Total estimé : ${formatPrice(estimatedCents)}` : null,
+      where,
+    ]
+      .filter(Boolean)
+      .map((l) => escapeHtml(l!))
+      .join("<br>");
+    await sendRequestConfirmation({ orderId, to: email, name, kindLabel: typeLabel, summary, hasAccount: Boolean(user) });
   }
 
-  const typeLabel = requestTypes.find((t) => t.id === d.type)!.title;
-  const rows: [string, string][] = [
-    ["Type", typeLabel],
-    ["Nom", d.name],
-    ["Email", d.email],
-    ["Téléphone", d.phone || "non précisé"],
-    ["Réception", d.where],
-    ...(d.type === "commande" && d.product ? ([["Article", d.product.name]] as [string, string][]) : []),
-    ["Quantité", String(d.quantity)],
-    ...(d.estimatedCents ? ([["Total estimé", formatPrice(d.estimatedCents)]] as [string, string][]) : []),
-    ["Matériau", d.material || "à conseiller"],
-    ["Fichiers", d.files.length ? d.files.map((f) => f.name).join(", ") : "aucun"],
-  ];
-
-  const attachments = await Promise.all(
-    d.files.map(async (f) => ({ filename: f.name, content: Buffer.from(await f.arrayBuffer()).toString("base64") })),
-  );
-
-  const res = await fetch("https://api.resend.com/emails", {
-    method: "POST",
-    headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-    body: JSON.stringify({
-      from: process.env.CONTACT_FROM_EMAIL ?? "Yris <onboarding@resend.dev>",
-      to: [to],
-      reply_to: d.email,
-      subject: `${typeLabel} : ${d.product && d.type === "commande" ? d.product.name : d.name}`,
-      text: `${rows.map(([k, v]) => `${k} : ${v}`).join("\n")}\n\n${d.details}`,
-      html: `<table>${rows
-        .map(([k, v]) => `<tr><td><b>${k}</b></td><td>${escapeHtml(v)}</td></tr>`)
-        .join("")}</table><p style="white-space:pre-wrap">${escapeHtml(d.details)}</p>`,
-      attachments,
-    }),
-  });
-
-  if (!res.ok) console.error("Formulaire de demande : échec Resend", res.status, await res.text());
-  return res.ok;
+  return { status: "success", saved: saved && Boolean(user) };
 }

@@ -19,7 +19,9 @@ export default function Header() {
     <header className="sticky top-0 z-40 border-b border-line bg-bg/75 backdrop-blur-xl">
       {/* Trois colonnes (1fr · auto · 1fr) : les liens sont centrés sur la page, quelle que soit la largeur du logo ou des boutons. */}
       <div className="mx-auto flex h-16 w-full max-w-[1120px] items-center justify-between px-5 sm:px-6 md:grid md:grid-cols-[1fr_auto_1fr]">
-        <Link href="/" className="justify-self-start font-mono text-sm font-medium tracking-[0.3em]" aria-label="Yris, accueil">
+        <Link href="/" className="flex items-center gap-2.5 justify-self-start font-mono text-sm font-medium tracking-[0.3em]" aria-label="Yris, accueil">
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/yris-mark-transparent.svg" alt="" width={18} height={18} className="h-[18px] w-auto" />
           YRIS
         </Link>
 

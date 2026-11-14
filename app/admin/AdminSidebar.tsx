@@ -96,7 +96,9 @@ export default function AdminSidebar({ counts, email }: { counts: AdminCounts; e
   const nav = (
     <div className="flex h-full flex-col">
       <div className="flex h-16 items-center justify-between px-5">
-        <Link href="/admin" className="flex items-baseline gap-2" onClick={() => setOpen(false)}>
+        <Link href="/admin" className="flex items-center gap-2" onClick={() => setOpen(false)}>
+          {/* eslint-disable-next-line @next/next/no-img-element */}
+          <img src="/brand/yris-mark-transparent.svg" alt="" width={18} height={18} className="h-[18px] w-auto" />
           <span className="font-mono text-sm font-medium tracking-[0.3em]">YRIS</span>
           <span className="rounded bg-accent/15 px-1.5 py-0.5 font-mono text-[10px] uppercase tracking-wider text-accent-2">
             Gestion

@@ -1,5 +1,6 @@
 "use server";
 
+import { notifyOwner } from "@/lib/email";
 import { reportCategories } from "@/lib/site";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
 
@@ -11,9 +12,6 @@ export type ReportState = {
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
 
-function escapeHtml(s: string) {
-  return s.replace(/[&<>"']/g, (c) => ({ "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;", "'": "&#39;" })[c]!);
-}
 
 export async function sendReport(_prev: ReportState, formData: FormData): Promise<ReportState> {
   // Champ piège invisible : un humain le laisse vide, un robot le remplit.
@@ -49,27 +47,18 @@ export async function sendReport(_prev: ReportState, formData: FormData): Promis
   }
 
   // Copie par email, si l'envoi d'emails est configuré.
-  let emailed = false;
-  const apiKey = process.env.RESEND_API_KEY;
-  const to = process.env.CONTACT_TO_EMAIL;
-  if (apiKey && to) {
-    const label = reportCategories.find((c) => c.id === category)!.label;
-    const res = await fetch("https://api.resend.com/emails", {
-      method: "POST",
-      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
-      body: JSON.stringify({
-        from: process.env.CONTACT_FROM_EMAIL ?? "Yris <onboarding@resend.dev>",
-        to: [to],
-        reply_to: email,
-        subject: `Signalement (${label}) : ${name}`,
-        html: `<p><b>Sujet :</b> ${escapeHtml(label)}<br><b>Nom :</b> ${escapeHtml(name)}<br><b>Email :</b> ${escapeHtml(email)}${
-          orderRef ? `<br><b>Commande :</b> #${escapeHtml(orderRef)}` : ""
-        }</p><p style="white-space:pre-wrap">${escapeHtml(message)}</p>`,
-      }),
-    });
-    emailed = res.ok;
-    if (!res.ok) console.error("Signalement : échec Resend", res.status, await res.text());
-  }
+  const label = reportCategories.find((c) => c.id === category)!.label;
+  const emailed = await notifyOwner({
+    subject: `Signalement (${label}) : ${name}`,
+    replyTo: email,
+    body: message,
+    rows: [
+      ["Sujet", label],
+      ["Nom", name],
+      ["Email", email],
+      ...(orderRef ? ([["Commande", `#${orderRef}`]] as [string, string][]) : []),
+    ],
+  });
 
   if (!saved && !emailed) {
     return { status: "error", message: "Le message n'a pas pu partir. Réessayez dans un instant." };

@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="85mm" height="55mm" viewBox="0 0 850 550">
+  <!-- Carte de visite Yris, recto. Format 85 × 55 mm, noir et blanc. -->
+  <rect width="850" height="550" fill="#fff"/>
+  <svg x="345" y="120" width="160" height="157" viewBox="96 98 320 315"><defs><pattern id="ly" width="512" height="20" patternUnits="userSpaceOnUse" y="1"><rect width="512" height="15" fill="#fff"/></pattern><mask id="mk"><rect x="-512" y="-512" width="2048" height="2048" fill="url(#ly)"/></mask></defs><path mask="url(#mk)" fill="#000" d="M116 118 H192 L256 204 L320 118 H396 L290 260 V393 H222 V260 Z"/></svg>
+  <text x="425" y="368" text-anchor="middle" font-family="Geist Mono, Consolas, monospace" font-size="58" font-weight="600" letter-spacing="22" fill="#000">YRIS</text>
+  <text x="425" y="414" text-anchor="middle" font-family="Geist, 'Segoe UI', Arial, sans-serif" font-size="19" letter-spacing="4" fill="#000">IMPRESSION 3D À LA DEMANDE</text>
+</svg>

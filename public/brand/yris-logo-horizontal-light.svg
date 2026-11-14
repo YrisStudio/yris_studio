@@ -1,0 +1,7 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1060 340" role="img" aria-label="Yris, impression 3D à la demande">
+  <defs><linearGradient id="yris-g" x1="0" y1="0" x2="0" y2="1"><stop offset="0" stop-color="#22c55e"/><stop offset="1" stop-color="#15803d"/></linearGradient><pattern id="yris-layers" width="512" height="20" patternUnits="userSpaceOnUse" y="1"><rect width="512" height="15" fill="#fff"/></pattern><mask id="yris-m"><rect x="-512" y="-512" width="2048" height="2048" fill="url(#yris-layers)"/></mask></defs>
+  <rect width="1060" height="340" fill="#fafaf8"/>
+  <g transform="translate(-15 -16) scale(0.645)"><path mask="url(#yris-m)" fill="url(#yris-g)" d="M116 118 H192 L256 204 L320 118 H396 L290 260 V393 H222 V260 Z"/></g>
+  <text x="290" y="168" font-family="Geist Mono, Consolas, monospace" font-size="150" font-weight="600" letter-spacing="54" fill="#111110">YRIS</text>
+  <text x="294" y="238" font-family="Geist, 'Segoe UI', Arial, sans-serif" font-size="40" letter-spacing="4" fill="#63635d">IMPRESSION 3D À LA DEMANDE</text>
+</svg>

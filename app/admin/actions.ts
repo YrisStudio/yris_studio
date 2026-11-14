@@ -2,6 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
+import { sendStatusUpdate } from "@/lib/email";
+import { formatPrice } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 // Ordre du suivi : un clic fait passer la commande à l'étape suivante.
@@ -16,12 +18,25 @@ export async function advanceOrder(id: string, current: string) {
   const status = nextStatus[current];
   if (!status) return;
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data, error } = await supabase
     .from("orders")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .eq("status", current);
+    .eq("status", current)
+    .select("customer_email, customer_name, user_id, final_cents, estimated_cents")
+    .maybeSingle();
   if (error) console.error("File d'impression :", error.message);
+  if (data) {
+    const cents = data.final_cents ?? data.estimated_cents;
+    await sendStatusUpdate({
+      orderId: id,
+      to: data.customer_email,
+      name: data.customer_name,
+      status,
+      priceLabel: cents !== null ? formatPrice(cents) : null,
+      hasAccount: Boolean(data.user_id),
+    });
+  }
   revalidatePath("/admin", "layout");
   revalidatePath("/compte");
 }

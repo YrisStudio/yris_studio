@@ -2,7 +2,8 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
-import { orderStatuses } from "@/lib/site";
+import { sendStatusUpdate } from "@/lib/email";
+import { formatPrice, orderStatuses } from "@/lib/site";
 import { createClient } from "@/lib/supabase/server";
 
 export type OrderEditState = { status: "idle" | "success" | "error"; message?: string };
@@ -26,16 +27,33 @@ export async function updateOrder(id: string, _prev: OrderEditState, formData: F
   const note = String(formData.get("admin_note") ?? "").trim().slice(0, 2000);
 
   const supabase = await createClient();
-  const { error } = await supabase
+  const { data: before } = await supabase.from("orders").select("status").eq("id", id).maybeSingle();
+  const { data, error } = await supabase
     .from("orders")
     .update({ status, final_cents: finalCents, admin_note: note || null, updated_at: new Date().toISOString() })
-    .eq("id", id);
+    .eq("id", id)
+    .select("customer_email, customer_name, user_id, estimated_cents")
+    .maybeSingle();
   if (error) {
     console.error("Admin : mise à jour impossible", error.message);
     return { status: "error", message: "Impossible d'enregistrer. Réessayez." };
   }
 
+  // Le client est prévenu par email quand le statut change.
+  let mailed = false;
+  if (data && before && before.status !== status) {
+    const cents = finalCents ?? data.estimated_cents;
+    mailed = await sendStatusUpdate({
+      orderId: id,
+      to: data.customer_email,
+      name: data.customer_name,
+      status,
+      priceLabel: cents !== null ? formatPrice(cents) : null,
+      hasAccount: Boolean(data.user_id),
+    });
+  }
+
   revalidatePath("/admin", "layout");
   revalidatePath("/compte");
-  return { status: "success", message: "Enregistré" };
+  return { status: "success", message: mailed ? "Enregistré, client prévenu" : "Enregistré" };
 }
