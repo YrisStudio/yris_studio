@@ -3,57 +3,143 @@
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
 import { sendStatusUpdate } from "@/lib/email";
-import { formatPrice, orderStatuses } from "@/lib/site";
-import { createClient } from "@/lib/supabase/server";
+import { computeQuote, sanitizeInputs, type QuoteInputs } from "@/lib/pricing";
+import { getTariffs } from "@/lib/settings";
+import { formatPrice, orderStatuses, type OrderStatus } from "@/lib/site";
+import { createClient, getUser } from "@/lib/supabase/server";
+import { statusMeta } from "@/lib/orders-meta";
 
-export type OrderEditState = { status: "idle" | "success" | "error"; message?: string };
+export type ActionState = { status: "idle" | "success" | "error"; message?: string };
 
-// « 12,50 » ou « 12.5 » → 1250 centimes. Vide → null.
-function parseEuros(raw: string): number | null | undefined {
-  const s = raw.replace(/\s|€/g, "").replace(",", ".");
-  if (!s) return null;
-  const n = Number(s);
-  if (!Number.isFinite(n) || n < 0 || n > 100000) return undefined;
-  return Math.round(n * 100);
+type Supabase = Awaited<ReturnType<typeof createClient>>;
+
+async function logEvent(supabase: Supabase, orderId: string, kind: string, body: string) {
+  const user = await getUser();
+  const { error } = await supabase
+    .from("order_events")
+    .insert({ order_id: orderId, kind, body: body.slice(0, 4000), author_email: user?.email ?? null });
+  if (error) console.error("Historique :", error.message);
 }
 
-export async function updateOrder(id: string, _prev: OrderEditState, formData: FormData): Promise<OrderEditState> {
-  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+function refresh(id?: string) {
+  revalidatePath("/admin", "layout");
+  if (id) revalidatePath(`/admin/commandes/${id}`);
+  revalidatePath("/compte");
+}
 
-  const status = String(formData.get("status") ?? "");
+// Change le statut (glisser-déposer du Kanban ou fiche commande) et prévient le client par email.
+export async function setOrderStatus(id: string, status: string): Promise<ActionState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
   if (!(orderStatuses as readonly string[]).includes(status)) return { status: "error", message: "Statut inconnu." };
-  const finalCents = parseEuros(String(formData.get("final_price") ?? ""));
-  if (finalCents === undefined) return { status: "error", message: "Prix invalide. Exemple : 24,90" };
-  const note = String(formData.get("admin_note") ?? "").trim().slice(0, 2000);
 
   const supabase = await createClient();
   const { data: before } = await supabase.from("orders").select("status").eq("id", id).maybeSingle();
+  if (!before) return { status: "error", message: "Commande introuvable." };
+  if (before.status === status) return { status: "success" };
+
   const { data, error } = await supabase
     .from("orders")
-    .update({ status, final_cents: finalCents, admin_note: note || null, updated_at: new Date().toISOString() })
+    .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .select("customer_email, customer_name, user_id, estimated_cents")
+    .select("customer_email, customer_name, user_id, final_cents, estimated_cents")
     .maybeSingle();
+  if (error || !data) {
+    console.error("Statut :", error?.message);
+    return { status: "error", message: "Impossible de changer le statut." };
+  }
+
+  const from = statusMeta[before.status as OrderStatus]?.label ?? before.status;
+  const to = statusMeta[status as OrderStatus].label;
+  await logEvent(supabase, id, "statut", `${from} → ${to}`);
+
+  const cents = data.final_cents ?? data.estimated_cents;
+  const mailed = await sendStatusUpdate({
+    orderId: id,
+    to: data.customer_email,
+    name: data.customer_name,
+    status,
+    priceLabel: cents !== null ? formatPrice(cents) : null,
+    hasAccount: Boolean(data.user_id),
+  });
+  if (mailed) await logEvent(supabase, id, "email", `Client prévenu : « ${to} »`);
+
+  refresh(id);
+  return { status: "success", message: mailed ? "Statut changé, client prévenu" : "Statut changé" };
+}
+
+// Priorité, date promise et prix final ajusté à la main.
+export async function updateOrderMeta(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const priority = formData.get("priority") === "urgente" ? "urgente" : "normale";
+  const due = String(formData.get("due_date") ?? "");
+  if (due && !/^\d{4}-\d{2}-\d{2}$/.test(due)) return { status: "error", message: "Date invalide." };
+
+  const rawPrice = String(formData.get("final_price") ?? "").replace(/\s|€/g, "").replace(",", ".");
+  let finalCents: number | null = null;
+  if (rawPrice) {
+    const n = Number(rawPrice);
+    if (!Number.isFinite(n) || n < 0 || n > 100000) return { status: "error", message: "Prix invalide. Exemple : 24,90" };
+    finalCents = Math.round(n * 100);
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("orders")
+    .update({ priority, due_date: due || null, final_cents: finalCents, updated_at: new Date().toISOString() })
+    .eq("id", id);
   if (error) {
-    console.error("Admin : mise à jour impossible", error.message);
-    return { status: "error", message: "Impossible d'enregistrer. Réessayez." };
+    console.error("Commande :", error.message);
+    return { status: "error", message: "Impossible d'enregistrer." };
+  }
+  refresh(id);
+  return { status: "success", message: "Enregistré" };
+}
+
+// Note interne (jamais visible par le client).
+export async function addOrderNote(id: string, _prev: ActionState, formData: FormData): Promise<ActionState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const body = String(formData.get("note") ?? "").trim();
+  if (!body) return { status: "error", message: "Écrivez la note." };
+  const supabase = await createClient();
+  await logEvent(supabase, id, "note", body);
+  refresh(id);
+  return { status: "success", message: "Note ajoutée" };
+}
+
+// Enregistre le devis calculé (et l'envoie au client si demandé). Le calcul est refait ici,
+// avec les tarifs enregistrés : le navigateur ne fait que proposer les valeurs saisies.
+export async function saveQuote(id: string, raw: Partial<QuoteInputs>, send: boolean): Promise<ActionState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const inputs = sanitizeInputs(raw);
+  const quote = computeQuote(inputs, await getTariffs());
+
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("orders")
+    .update({
+      quote_inputs: inputs,
+      lines: quote.lines,
+      final_cents: quote.totalCents,
+      material: inputs.material,
+      updated_at: new Date().toISOString(),
+    })
+    .eq("id", id);
+  if (error) {
+    console.error("Devis :", error.message);
+    return { status: "error", message: "Impossible d'enregistrer le devis." };
   }
 
-  // Le client est prévenu par email quand le statut change.
-  let mailed = false;
-  if (data && before && before.status !== status) {
-    const cents = finalCents ?? data.estimated_cents;
-    mailed = await sendStatusUpdate({
-      orderId: id,
-      to: data.customer_email,
-      name: data.customer_name,
-      status,
-      priceLabel: cents !== null ? formatPrice(cents) : null,
-      hasAccount: Boolean(data.user_id),
-    });
+  if (!send) {
+    await logEvent(supabase, id, "devis", `Devis calculé : ${formatPrice(quote.totalCents)}`);
+    refresh(id);
+    return { status: "success", message: "Devis enregistré" };
   }
 
-  revalidatePath("/admin", "layout");
-  revalidatePath("/compte");
-  return { status: "success", message: mailed ? "Enregistré, client prévenu" : "Enregistré" };
+  // Numéro de devis officiel (D-2026-0001), attribué une seule fois par la base.
+  const { data: number, error: numError } = await supabase.rpc("issue_document", { p_order: id, p_kind: "devis" });
+  if (numError) console.error("Numéro de devis :", numError.message);
+  await logEvent(supabase, id, "devis", `Devis ${number ?? ""} envoyé : ${formatPrice(quote.totalCents)}`.replace("  ", " "));
+  const res = await setOrderStatus(id, "devis envoyé");
+  refresh(id);
+  return res.status === "error" ? res : { status: "success", message: res.message?.includes("prévenu") ? "Devis envoyé au client" : "Devis prêt (email non envoyé)" };
 }
