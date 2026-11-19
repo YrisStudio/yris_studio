@@ -10,6 +10,7 @@ import {
   CornerDownLeft,
   Inbox,
   LayoutDashboard,
+  Printer,
   Settings,
   LogOut,
   Menu,
@@ -32,6 +33,10 @@ const groups: Group[] = [
   {
     title: "Ventes",
     items: [{ href: "/admin/commandes", label: "Commandes", icon: Inbox, keywords: "devis kanban clients" }],
+  },
+  {
+    title: "Atelier",
+    items: [{ href: "/admin/atelier", label: "Impressions", icon: Printer, keywords: "atelier file planning imprimantes bambu ratés maintenance" }],
   },
   {
     title: "Réglages",
@@ -70,6 +75,7 @@ function toggleCollapsed() {
 const tabs: Item[] = [
   { href: "/admin", label: "Accueil", icon: LayoutDashboard },
   { href: "/admin/commandes", label: "Commandes", icon: Inbox },
+  { href: "/admin/atelier", label: "Atelier", icon: Printer },
 ];
 
 function useIsActive() {

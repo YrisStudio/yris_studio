@@ -1,11 +1,14 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, FileText, Mail, MapPin, Package, Paperclip, Phone, Store, Truck } from "lucide-react";
+import { ArrowLeft, Building2, FileText, Mail, MapPin, Package, Paperclip, Phone, Printer, Store, Truck } from "lucide-react";
+import AddToQueue from "./AddToQueue";
 import MetaForm from "./MetaForm";
 import NoteForm from "./NoteForm";
 import QuoteBuilder from "./QuoteBuilder";
 import StatusBar from "./StatusBar";
 import { requireAdmin } from "@/lib/admin";
+import { formatHours } from "@/lib/atelier";
+import { getOrderJobs } from "@/lib/atelier-server";
 import { getOrder, getOrderEvents } from "@/lib/orders";
 import { eventLabel, kindLabel, statusMeta } from "@/lib/orders-meta";
 import { getTariffs } from "@/lib/settings";
@@ -42,7 +45,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
-  const [events, tariffs] = await Promise.all([getOrderEvents(id), getTariffs()]);
+  const [events, tariffs, jobs] = await Promise.all([getOrderEvents(id), getTariffs(), getOrderJobs(id)]);
   const meta = statusMeta[order.status as OrderStatus];
   const amount = order.final_cents ?? order.estimated_cents;
 
@@ -116,6 +119,34 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
               savedLines={order.lines}
               status={order.status}
             />
+          </Section>
+
+          {/* Impressions liées à la commande */}
+          <Section title="Impression" icon={Printer}>
+            {jobs.length > 0 && (
+              <ul className="mb-3 divide-y divide-line rounded-md border border-line">
+                {jobs.map((j) => (
+                  <li key={j.id} className="flex flex-wrap items-center gap-x-3 gap-y-0.5 px-3 py-2 text-[13px]">
+                    <span className="min-w-0 flex-1 truncate">{j.title}</span>
+                    <span className="font-mono text-[11.5px] text-muted">{formatHours(Number(j.hours) * j.quantity)}</span>
+                    <span
+                      className={`rounded px-1.5 py-0.5 text-[11px] ${
+                        j.status === "en cours"
+                          ? "bg-amber-400/15 text-amber-300"
+                          : j.status === "terminé"
+                            ? "bg-accent/15 text-accent"
+                            : j.status === "raté"
+                              ? "bg-red-400/15 text-red-300"
+                              : "bg-fg/10 text-muted"
+                      }`}
+                    >
+                      {j.status}
+                    </span>
+                  </li>
+                ))}
+              </ul>
+            )}
+            <AddToQueue id={order.id} ready={Boolean(order.quote_inputs?.hours)} />
           </Section>
 
           {/* Historique */}
