@@ -26,6 +26,7 @@ import {
   finishJob,
   markMaintenance,
   moveJob,
+  setJobSpool,
   setPrinterStatus,
   startJob,
   type AtelierState,
@@ -33,6 +34,7 @@ import {
 import { formatHours, hoursUntilMaintenance, planPrinter, printerModels, progress, type PrintJob, type Printer } from "@/lib/atelier";
 import { quoteMaterials, type Tariffs } from "@/lib/pricing";
 import { formatPrice, orderRef } from "@/lib/site";
+import type { Spool } from "@/lib/stock";
 
 const field =
   "w-full rounded-md border border-line bg-bg/60 px-2.5 py-1.5 text-base text-fg outline-none transition focus:border-accent sm:text-[13px]";
@@ -51,12 +53,14 @@ export default function AtelierView({
   jobs,
   history,
   materialPrices,
+  spools,
   nowIso,
 }: {
   printers: Printer[];
   jobs: PrintJob[];
   history: PrintJob[];
   materialPrices: Tariffs["materials"];
+  spools: Spool[];
   nowIso: string;
 }) {
   // L'heure avance toute seule : avancement et planning se mettent à jour chaque minute.
@@ -283,6 +287,7 @@ export default function AtelierView({
                                   {isRunning ? `fin ~ ${time.format(slot.end)}` : `${time.format(slot.start)} → ${time.format(slot.end)}`}
                                 </p>
                               )}
+                              <SpoolSelect job={j} spools={spools} onChange={(sid) => run(() => setJobSpool(j.id, sid))} />
                               {isRunning && (
                                 <div className="mt-1.5 h-1 overflow-hidden rounded-full bg-fg/10">
                                   <div className="h-full rounded-full bg-accent" style={{ width: `${Math.round(progress(j, now) * 100)}%` }} />
@@ -519,5 +524,33 @@ function AddJobForm({ printers, onDone }: { printers: Printer[]; onDone: () => v
       </button>
       {state.status === "error" && <p className="col-span-2 text-[12px] text-red-300 sm:col-span-3 lg:col-span-7">{state.message}</p>}
     </form>
+  );
+}
+
+// Bobine à utiliser : les bobines du même matériau, la plus entamée d'abord. Vide = choix automatique.
+function SpoolSelect({ job, spools, onChange }: { job: PrintJob; spools: Spool[]; onChange: (id: string | null) => void }) {
+  const options = spools
+    .filter((s) => !job.material || s.material === job.material)
+    .sort((a, b) => Number(a.grams_left) - Number(b.grams_left));
+  const needed = Number(job.grams) * job.quantity;
+  const chosen = spools.find((s) => s.id === job.spool_id);
+  if (options.length === 0 && !chosen) return null;
+  return (
+    <label className="mt-1 flex items-center gap-1.5 text-[11px] text-muted">
+      <span className="size-2.5 shrink-0 rounded-full border border-line-strong" style={{ background: chosen?.color_hex ?? "transparent" }} aria-hidden />
+      <select
+        value={job.spool_id ?? ""}
+        onChange={(e) => onChange(e.target.value || null)}
+        aria-label="Bobine utilisée"
+        className="min-w-0 flex-1 truncate bg-transparent outline-none"
+      >
+        <option value="">Bobine : automatique</option>
+        {options.map((s) => (
+          <option key={s.id} value={s.id}>
+            {s.material} {s.color} · {Math.round(Number(s.grams_left))} g{Number(s.grams_left) < needed ? " (pas assez)" : ""}
+          </option>
+        ))}
+      </select>
+    </label>
   );
 }

@@ -4,6 +4,7 @@ import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
 import { jobDurationMs, printerModels } from "@/lib/atelier";
 import { quoteMaterials } from "@/lib/pricing";
+import { moveFilament, pickSpool } from "@/lib/stock-server";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 export type AtelierState = { status: "idle" | "success" | "error"; message?: string };
@@ -228,9 +229,17 @@ export async function finishJob(id: string) {
     .eq("id", id);
   if (error) return fail("Impossible de terminer l'impression.");
   await addPrinterHours(supabase, job.printer_id, jobDurationMs(job) / 3_600_000);
+  // Le filament utilisé est retiré du stock (bobine choisie, sinon la plus entamée du bon matériau).
+  const used = Number(job.grams) * job.quantity;
+  const spool = used > 0 ? await pickSpool(supabase, job.material, used, job.spool_id) : null;
+  if (spool) {
+    await moveFilament(supabase, spool, -used, "impression", job.id);
+    if (!job.spool_id) await supabase.from("print_jobs").update({ spool_id: spool }).eq("id", id);
+  }
   await logOrder(supabase, job.order_id, `Impression terminée : ${job.title}`);
   refresh(job.order_id);
-  return ok("Impression terminée");
+  revalidatePath("/admin/stock");
+  return ok(spool ? `Impression terminée, ${Math.round(used)} g retirés du stock` : "Impression terminée");
 }
 
 export async function failJob(id: string, reason: string, gramsLost: number) {
@@ -251,6 +260,10 @@ export async function failJob(id: string, reason: string, gramsLost: number) {
     .eq("id", id);
   if (error) return fail("Impossible d'enregistrer le raté.");
   await addPrinterHours(supabase, job.printer_id, Math.min(elapsed, jobDurationMs(job) / 3_600_000));
+  // Le filament perdu est retiré du stock lui aussi.
+  const lost = Number.isFinite(gramsLost) && gramsLost > 0 ? gramsLost : 0;
+  const lostSpool = lost ? await pickSpool(supabase, job.material, lost, job.spool_id) : null;
+  if (lostSpool) await moveFilament(supabase, lostSpool, -lost, "raté", job.id);
   // On remet tout de suite la même impression en tête de la file de l'imprimante.
   await supabase.from("print_jobs").insert({
     order_id: job.order_id,
@@ -260,10 +273,12 @@ export async function failJob(id: string, reason: string, gramsLost: number) {
     grams: job.grams,
     hours: job.hours,
     quantity: job.quantity,
+    spool_id: job.spool_id,
     position: -1,
   });
   await logOrder(supabase, job.order_id, `Impression ratée (${reason || "cause non précisée"}), relancée dans la file`);
   refresh(job.order_id);
+  revalidatePath("/admin/stock");
   return ok("Raté enregistré, impression remise en tête de file");
 }
 
@@ -274,5 +289,15 @@ export async function deleteJob(id: string) {
   const { error } = await supabase.from("print_jobs").delete().eq("id", id).neq("status", "en cours");
   if (error) return fail("Impossible de retirer l'impression.");
   refresh(job?.order_id);
+  return ok();
+}
+
+// Bobine à utiliser pour une impression (vide = choix automatique à la fin de l'impression).
+export async function setJobSpool(id: string, spoolId: string | null) {
+  if (!(await isAdmin())) return fail("Accès refusé.");
+  const supabase = await createClient();
+  const { error } = await supabase.from("print_jobs").update({ spool_id: spoolId }).eq("id", id).in("status", ["à faire", "en cours"]);
+  if (error) return fail("Impossible de choisir la bobine.");
+  refresh();
   return ok();
 }

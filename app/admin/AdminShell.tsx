@@ -9,6 +9,7 @@ import {
   ChevronsRight,
   CornerDownLeft,
   Inbox,
+  Cylinder,
   LayoutDashboard,
   Printer,
   Settings,
@@ -36,7 +37,10 @@ const groups: Group[] = [
   },
   {
     title: "Atelier",
-    items: [{ href: "/admin/atelier", label: "Impressions", icon: Printer, keywords: "atelier file planning imprimantes bambu ratés maintenance" }],
+    items: [
+      { href: "/admin/atelier", label: "Impressions", icon: Printer, keywords: "atelier file planning imprimantes bambu ratés maintenance" },
+      { href: "/admin/stock", label: "Stock", icon: Cylinder, keywords: "filament bobines consommables buses" },
+    ],
   },
   {
     title: "Réglages",
@@ -76,6 +80,7 @@ const tabs: Item[] = [
   { href: "/admin", label: "Accueil", icon: LayoutDashboard },
   { href: "/admin/commandes", label: "Commandes", icon: Inbox },
   { href: "/admin/atelier", label: "Atelier", icon: Printer },
+  { href: "/admin/stock", label: "Stock", icon: Cylinder },
 ];
 
 function useIsActive() {
