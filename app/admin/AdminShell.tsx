@@ -11,6 +11,7 @@ import {
   Inbox,
   Cylinder,
   LayoutDashboard,
+  Users,
   Printer,
   Settings,
   LogOut,
@@ -33,7 +34,10 @@ const groups: Group[] = [
   },
   {
     title: "Ventes",
-    items: [{ href: "/admin/commandes", label: "Commandes", icon: Inbox, keywords: "devis kanban clients" }],
+    items: [
+      { href: "/admin/commandes", label: "Commandes", icon: Inbox, keywords: "devis kanban" },
+      { href: "/admin/clients", label: "Clients", icon: Users, keywords: "clients pros fiches étiquettes notes" },
+    ],
   },
   {
     title: "Atelier",

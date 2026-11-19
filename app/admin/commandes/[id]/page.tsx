@@ -7,6 +7,8 @@ import NoteForm from "./NoteForm";
 import QuoteBuilder from "./QuoteBuilder";
 import StatusBar from "./StatusBar";
 import { requireAdmin } from "@/lib/admin";
+import { clientKey } from "@/lib/clients";
+import { getClientRecord } from "@/lib/clients-server";
 import { formatHours } from "@/lib/atelier";
 import { getOrderJobs } from "@/lib/atelier-server";
 import { getOrder, getOrderEvents } from "@/lib/orders";
@@ -45,7 +47,14 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const { id } = await params;
   const order = await getOrder(id);
   if (!order) notFound();
-  const [events, tariffs, jobs] = await Promise.all([getOrderEvents(id), getTariffs(), getOrderJobs(id)]);
+  const email = order.customer_email?.trim().toLowerCase() ?? null;
+  const [events, tariffs, jobs, client] = await Promise.all([
+    getOrderEvents(id),
+    getTariffs(),
+    getOrderJobs(id),
+    email ? getClientRecord(email) : Promise.resolve(null),
+  ]);
+  const proDiscount = client?.is_pro ? Number(client.pro_discount_pct) : 0;
   const meta = statusMeta[order.status as OrderStatus];
   const amount = order.final_cents ?? order.estimated_cents;
 
@@ -114,7 +123,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
                 hours: order.quote_inputs?.hours ?? 0,
                 finishingMinutes: order.quote_inputs?.finishingMinutes ?? 15,
                 delivery: order.quote_inputs?.delivery ?? order.delivery === "livraison",
-                discountPct: order.quote_inputs?.discountPct ?? 0,
+                discountPct: order.quote_inputs?.discountPct ?? proDiscount,
               }}
               savedLines={order.lines}
               status={order.status}
@@ -187,7 +196,19 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         {/* Colonne de droite */}
         <aside className="space-y-4">
           <Section title="Client" icon={Building2}>
-            <p className="text-[14px] font-medium">{order.customer_name ?? "Client"}</p>
+            {email ? (
+              <Link href={`/admin/clients/${clientKey(email)}`} className="text-[14px] font-medium hover:text-accent">
+                {order.customer_name ?? "Client"} →
+              </Link>
+            ) : (
+              <p className="text-[14px] font-medium">{order.customer_name ?? "Client"}</p>
+            )}
+            {client?.is_pro && (
+              <p className="mt-1 inline-block rounded bg-sky-400/15 px-1.5 py-0.5 text-[11.5px] text-sky-300">
+                Client pro{proDiscount ? ` · remise ${proDiscount} %` : ""}
+              </p>
+            )}
+            {client && client.tags.length > 0 && <p className="mt-1 text-[11.5px] text-muted">{client.tags.join(" · ")}</p>}
             {order.customer_company && <p className="text-[12.5px] text-muted">{order.customer_company}</p>}
             <ul className="mt-3 space-y-1.5 text-[13px]">
               {order.customer_email && (
