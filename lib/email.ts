@@ -6,6 +6,9 @@ import { orderRef, site } from "@/lib/site";
 
 const FROM = () => process.env.CONTACT_FROM_EMAIL ?? "Yris <onboarding@resend.dev>";
 export const emailEnabled = () => Boolean(process.env.RESEND_API_KEY);
+// Adresse qui reçoit les formulaires (et à laquelle les clients répondent) : l'adresse de contact du site,
+// sauf si CONTACT_TO_EMAIL est défini dans les variables d'environnement.
+const ownerEmail = () => process.env.CONTACT_TO_EMAIL || site.email;
 
 type Payload = Record<string, unknown>;
 
@@ -59,11 +62,7 @@ export async function notifyOwner(p: {
   body: string;
   files?: File[];
 }) {
-  const to = process.env.CONTACT_TO_EMAIL;
-  if (!to) {
-    console.error("Email : CONTACT_TO_EMAIL manquant.");
-    return false;
-  }
+  const to = ownerEmail();
   const attachments = await Promise.all(
     (p.files ?? []).map(async (f) => ({ filename: f.name, content: Buffer.from(await f.arrayBuffer()).toString("base64") })),
   );
@@ -95,7 +94,7 @@ export function sendRequestConfirmation(p: {
   return send(
     {
       to: [p.to],
-      reply_to: process.env.CONTACT_TO_EMAIL,
+      reply_to: ownerEmail(),
       template: {
         id: "demande-recue",
         variables: {
@@ -144,7 +143,7 @@ export function sendStatusUpdate(p: {
   return send(
     {
       to: [p.to],
-      reply_to: process.env.CONTACT_TO_EMAIL,
+      reply_to: ownerEmail(),
       template: {
         id: "statut-commande",
         variables: {

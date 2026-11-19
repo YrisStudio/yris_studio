@@ -6,7 +6,11 @@ export default function Footer() {
     <footer className="border-t border-line text-sm text-muted">
       <div className="mx-auto grid w-full max-w-[1120px] gap-10 px-5 py-14 sm:grid-cols-[1.5fr_1fr_1fr] sm:px-6">
         <div>
-          <p className="font-mono text-sm font-medium tracking-[0.3em] text-fg">YRIS</p>
+          <Link href="/" className="inline-flex items-center gap-3 text-fg" aria-label="Yris, accueil">
+            {/* eslint-disable-next-line @next/next/no-img-element */}
+            <img src="/brand/yris-mark-transparent.svg" alt="" width={32} height={32} className="h-8 w-auto" />
+            <span className="font-mono text-base font-medium tracking-[0.3em]">YRIS</span>
+          </Link>
           <p className="mt-4 max-w-xs">{site.tagline}. Pièces auto, objets du quotidien, prototypes.</p>
         </div>
         <nav aria-label="Pied de page" className="flex flex-col gap-2.5">
