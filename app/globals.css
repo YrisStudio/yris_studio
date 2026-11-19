@@ -20,6 +20,8 @@
   --color-accent: #4ade80;
   --color-accent-2: #86efac;
   --color-on-accent: #052e16;
+  /* Couleur des graphiques : vert validé (contraste et daltonisme) sur fond sombre. */
+  --color-chart: #16a34a;
 
   --animate-rise: rise 0.9s cubic-bezier(0.22, 1, 0.36, 1) both;
   --animate-head: head 4s ease-in-out infinite;
