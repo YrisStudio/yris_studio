@@ -41,6 +41,7 @@ export type PrintJob = {
   failure_reason: string | null;
   grams_lost: number | null;
   spool_id: string | null;
+  report_id: string | null;
   created_at: string;
 };
 

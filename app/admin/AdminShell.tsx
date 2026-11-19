@@ -11,6 +11,8 @@ import {
   Inbox,
   Cylinder,
   LayoutDashboard,
+  LifeBuoy,
+  ListTodo,
   Users,
   Printer,
   Settings,
@@ -45,6 +47,14 @@ const groups: Group[] = [
       { href: "/admin/atelier", label: "Impressions", icon: Printer, keywords: "atelier file planning imprimantes bambu ratés maintenance" },
       { href: "/admin/stock", label: "Stock", icon: Cylinder, keywords: "filament bobines consommables buses" },
     ],
+  },
+  {
+    title: "Assistance",
+    items: [{ href: "/admin/sav", label: "SAV", icon: LifeBuoy, keywords: "signalements réclamations retours réimpression" }],
+  },
+  {
+    title: "Organisation",
+    items: [{ href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées" }],
   },
   {
     title: "Réglages",
