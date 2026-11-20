@@ -42,6 +42,21 @@ export async function saveTariffs(_prev: SettingsState, formData: FormData): Pro
   return { status: "success", message: "Tarifs enregistrés" };
 }
 
+// Remise à zéro des chiffres : les ventes terminées avant cette date ne comptent plus (rien n'est supprimé).
+export async function setStatsReset(reset: boolean): Promise<SettingsState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const supabase = await createClient();
+  // Annuler = valeur vide (getStatsResetAt n'y voit alors aucune date).
+  const now = new Date().toISOString();
+  const { error } = await supabase.from("admin_settings").upsert({ key: "stats_reset_at", value: reset ? now : null, updated_at: now });
+  if (error) {
+    console.error("Remise à zéro :", error.message);
+    return { status: "error", message: "Impossible de modifier les chiffres." };
+  }
+  revalidatePath("/admin", "layout");
+  return { status: "success", message: reset ? "Chiffres remis à zéro" : "Tous les chiffres sont de retour" };
+}
+
 export async function saveCompany(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
   if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
   const company = sanitizeCompany(Object.fromEntries(companyFields.map(({ key }) => [key, String(formData.get(key) ?? "")])));

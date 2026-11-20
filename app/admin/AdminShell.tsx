@@ -5,6 +5,7 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
+  CalendarDays,
   ChevronsLeft,
   ChevronsRight,
   CornerDownLeft,
@@ -59,6 +60,7 @@ const groups: Group[] = [
   {
     title: "Organisation",
     items: [
+      { href: "/admin/calendrier", label: "Calendrier", icon: CalendarDays, keywords: "planning dates livraisons agenda" },
       { href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées" },
       { href: "/admin/outils", label: "Outils", icon: Wrench, keywords: "calculateur prix qr code" },
     ],

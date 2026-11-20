@@ -352,3 +352,20 @@ button:disabled {
     transition: none !important;
   }
 }
+
+/* Devis imprimé (/imprimer/devis) : feuille A4, marges gérées par la page. */
+@media print {
+  @page {
+    size: A4;
+    margin: 14mm 16mm;
+  }
+  html,
+  body {
+    background: #fff !important;
+    color-scheme: light;
+  }
+  .quote-sheet {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}

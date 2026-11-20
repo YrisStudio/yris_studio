@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, FileText, Mail, MapPin, Package, Paperclip, Phone, Printer, Store, Truck } from "lucide-react";
+import { ArrowLeft, Building2, Download, FileText, Mail, MapPin, Package, Paperclip, Phone, Printer, Store, Truck } from "lucide-react";
 import AddToQueue from "./AddToQueue";
 import MetaForm from "./MetaForm";
 import NoteForm from "./NoteForm";
@@ -111,7 +111,17 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
           </Section>
 
           {/* Devis */}
-          <Section title="Devis" icon={FileText}>
+          <Section
+            title="Devis"
+            icon={FileText}
+            action={
+              order.lines?.length ? (
+                <Link href={`/imprimer/devis/${order.id}`} className="inline-flex items-center gap-1 text-[12px] text-muted hover:text-fg">
+                  <Download size={13} aria-hidden /> PDF
+                </Link>
+              ) : null
+            }
+          >
             <QuoteBuilder
               id={order.id}
               tariffs={tariffs}

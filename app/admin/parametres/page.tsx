@@ -1,15 +1,18 @@
-import { Building2, Calculator } from "lucide-react";
+import { BarChart3, Building2, Calculator, Mail } from "lucide-react";
 import PageHeader from "../PageHeader";
 import CompanyForm from "./CompanyForm";
+import ResetStats from "./ResetStats";
 import TariffsForm from "./TariffsForm";
-import { requireAdmin } from "@/lib/admin";
+import { getStatsResetAt, requireAdmin } from "@/lib/admin";
+import { emailEnabled } from "@/lib/email";
 import { getCompany, getTariffs } from "@/lib/settings";
 
 export const metadata = { title: "Paramètres" };
 
 export default async function AdminSettings() {
   await requireAdmin();
-  const [tariffs, company] = await Promise.all([getTariffs(), getCompany()]);
+  const [tariffs, company, resetAt] = await Promise.all([getTariffs(), getCompany(), getStatsResetAt()]);
+  const mails = emailEnabled();
 
   return (
     <div className="space-y-4">
@@ -32,6 +35,36 @@ export default async function AdminSettings() {
         </header>
         <div className="p-4">
           <TariffsForm tariffs={tariffs} />
+        </div>
+      </section>
+      <section className="rounded-lg border border-line bg-panel">
+        <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+          <BarChart3 size={14} className="text-muted" aria-hidden />
+          <h2 className="text-[13px] font-medium">Chiffres</h2>
+          <span className="ml-auto text-[11.5px] text-muted">Tableau de bord</span>
+        </header>
+        <div className="p-4">
+          <ResetStats resetAt={resetAt?.toISOString() ?? null} />
+        </div>
+      </section>
+      <section className="rounded-lg border border-line bg-panel">
+        <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+          <Mail size={14} className="text-muted" aria-hidden />
+          <h2 className="text-[13px] font-medium">Emails aux clients</h2>
+          <span className={`ml-auto rounded px-1.5 py-0.5 text-[11.5px] ${mails ? "bg-accent/15 text-accent" : "bg-amber-400/15 text-amber-300"}`}>
+            {mails ? "Actifs" : "Désactivés"}
+          </span>
+        </header>
+        <div className="space-y-1 p-4 text-[13px] text-fg/85">
+          <p>
+            Envoyés automatiquement : confirmation de demande, devis prêt, en impression, commande prête, annulation.
+          </p>
+          {!mails && (
+            <p className="text-[12.5px] text-amber-300">
+              Aucun email ne part : la clé Resend (RESEND_API_KEY) n&apos;est pas réglée sur ce serveur. Ajoute-la dans Vercel → Settings →
+              Environment Variables, puis redéploie.
+            </p>
+          )}
         </div>
       </section>
     </div>
