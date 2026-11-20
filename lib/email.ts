@@ -15,10 +15,15 @@ type Payload = Record<string, unknown>;
 // Envoie un email. Réessaie en cas d'erreur réseau, 429 ou 5xx (en respectant retry-after).
 // La clé d'idempotence évite les doublons si une tentative est rejouée.
 async function send(payload: Payload, idempotencyKey?: string): Promise<boolean> {
+  return Boolean(await sendWithId(payload, idempotencyKey));
+}
+
+// Comme send, mais renvoie l'identifiant Resend de l'email (null en cas d'échec).
+async function sendWithId(payload: Payload, idempotencyKey?: string): Promise<string | null> {
   const apiKey = process.env.RESEND_API_KEY;
   if (!apiKey) {
     console.error("Email : RESEND_API_KEY manquant.");
-    return false;
+    return null;
   }
 
   for (let attempt = 0; attempt < 3; attempt++) {
@@ -35,11 +40,11 @@ async function send(payload: Payload, idempotencyKey?: string): Promise<boolean>
       if (res.ok) {
         const { id } = (await res.json()) as { id?: string };
         console.info("Email envoyé", id);
-        return true;
+        return id ?? "envoyé";
       }
       const retryable = res.status === 429 || res.status >= 500;
       console.error("Email : échec Resend", res.status, await res.text());
-      if (!retryable) return false;
+      if (!retryable) return null;
       const wait = Number(res.headers.get("retry-after")) * 1000 || 500 * 2 ** attempt;
       await new Promise((r) => setTimeout(r, Math.min(wait, 5000)));
     } catch (err) {
@@ -47,7 +52,40 @@ async function send(payload: Payload, idempotencyKey?: string): Promise<boolean>
       await new Promise((r) => setTimeout(r, 500 * 2 ** attempt));
     }
   }
-  return false;
+  return null;
+}
+
+// Lecture dans l'API Resend (mails reçus). null si la clé manque ou en cas d'erreur.
+export async function resendGet<T>(path: string): Promise<T | null> {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return null;
+  try {
+    const res = await fetch(`https://api.resend.com${path}`, { headers: { Authorization: `Bearer ${apiKey}` }, cache: "no-store" });
+    if (!res.ok) {
+      console.error("Resend :", res.status, await res.text());
+      return null;
+    }
+    return (await res.json()) as T;
+  } catch (err) {
+    console.error("Resend : erreur réseau", err);
+    return null;
+  }
+}
+
+// Réponse à un client depuis la boîte de réception, au nom de contact@. Ses réponses reviennent au groupe contact.
+export function sendInboxReply(p: { to: string; subject: string; text: string; inReplyTo: string | null; key: string }) {
+  const html = `<div style="font-family:system-ui,sans-serif;font-size:14px;line-height:1.6;white-space:pre-wrap">${escapeHtml(p.text)}</div>`;
+  return sendWithId(
+    {
+      to: [p.to],
+      reply_to: ownerEmail(),
+      subject: p.subject,
+      text: p.text,
+      html,
+      ...(p.inReplyTo ? { headers: { "In-Reply-To": p.inReplyTo, References: p.inReplyTo } } : {}),
+    },
+    p.key,
+  );
 }
 
 export function escapeHtml(s: string) {

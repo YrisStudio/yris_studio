@@ -20,6 +20,7 @@ import {
   Printer,
   Settings,
   LogOut,
+  Mail,
   Menu,
   Search,
   UserRound,
@@ -55,7 +56,10 @@ const groups: Group[] = [
   },
   {
     title: "Assistance",
-    items: [{ href: "/admin/sav", label: "SAV", icon: LifeBuoy, keywords: "signalements réclamations retours réimpression" }],
+    items: [
+      { href: "/admin/boite", label: "Boîte de réception", icon: Mail, keywords: "mails emails messages contact répondre" },
+      { href: "/admin/sav", label: "SAV", icon: LifeBuoy, keywords: "signalements réclamations retours réimpression" },
+    ],
   },
   {
     title: "Organisation",
