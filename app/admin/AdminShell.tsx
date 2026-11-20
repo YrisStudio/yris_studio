@@ -13,6 +13,8 @@ import {
   LayoutDashboard,
   LifeBuoy,
   ListTodo,
+  Loader2,
+  Package,
   Users,
   Printer,
   Settings,
@@ -20,10 +22,12 @@ import {
   Menu,
   Search,
   UserRound,
+  Wrench,
   X,
   type LucideIcon,
 } from "lucide-react";
 import { signOut } from "@/app/(site)/connexion/actions";
+import { searchAdmin, type SearchHit } from "./search";
 
 type Item = { href: string; label: string; icon: LucideIcon; count?: number; alert?: boolean; keywords?: string };
 type Group = { title: string; items: Item[] };
@@ -54,11 +58,14 @@ const groups: Group[] = [
   },
   {
     title: "Organisation",
-    items: [{ href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées" }],
+    items: [
+      { href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées" },
+      { href: "/admin/outils", label: "Outils", icon: Wrench, keywords: "calculateur prix qr code" },
+    ],
   },
   {
     title: "Réglages",
-    items: [{ href: "/admin/parametres", label: "Paramètres", icon: Settings, keywords: "tarifs prix réglages" }],
+    items: [{ href: "/admin/parametres", label: "Paramètres", icon: Settings, keywords: "tarifs prix réglages entreprise siret adresse" }],
   },
 ];
 
@@ -369,33 +376,61 @@ export default function AdminShell({ email, children }: { email: string; childre
   );
 }
 
-// Palette de commandes : aller n'importe où au clavier (flèches, Entrée, Échap).
+// Palette de commandes : aller n'importe où, et chercher dans les données (commandes, clients, stock…).
+type Entry = { href: string; label: string; icon: LucideIcon; group: string; sub?: string; keywords?: string };
+
+const hitMeta: Record<SearchHit["kind"], { group: string; icon: LucideIcon }> = {
+  commande: { group: "Commandes", icon: Inbox },
+  client: { group: "Clients", icon: Users },
+  bobine: { group: "Stock", icon: Cylinder },
+  consommable: { group: "Stock", icon: Package },
+  imprimante: { group: "Imprimantes", icon: Printer },
+  sav: { group: "SAV", icon: LifeBuoy },
+  tache: { group: "To-do", icon: ListTodo },
+};
+
+const fold = (v: string) =>
+  v
+    .toLowerCase()
+    .normalize("NFD")
+    .replace(/[̀-ͯ]/g, "")
+    .trim();
+
 function CommandPalette({ groups, onClose }: { groups: Group[]; onClose: () => void }) {
   const router = useRouter();
   const [query, setQuery] = useState("");
   const [index, setIndex] = useState(0);
+  const [hits, setHits] = useState<{ q: string; items: SearchHit[] }>({ q: "", items: [] });
   const inputRef = useRef<HTMLInputElement>(null);
+  const q = query.trim();
+  const searching = q.length >= 2 && hits.q !== q;
 
-  const entries = useMemo(() => {
-    const all = [
+  // Recherche dans la base, 200 ms après la dernière frappe (seule la réponse la plus récente compte).
+  useEffect(() => {
+    if (q.length < 2) return;
+    let alive = true;
+    const t = setTimeout(async () => {
+      const items = await searchAdmin(q).catch(() => []);
+      if (alive) setHits({ q, items });
+    }, 200);
+    return () => {
+      alive = false;
+      clearTimeout(t);
+    };
+  }, [q]);
+
+  const entries = useMemo<Entry[]>(() => {
+    const pages: Entry[] = [
       ...groups.flatMap((g) => g.items.map((it) => ({ ...it, group: g.title }))),
       { href: "/", label: "Voir le site", icon: ArrowUpRight, group: "Aller à", keywords: "accueil public" },
       { href: "/compte", label: "Mon compte", icon: UserRound, group: "Aller à" },
     ];
-    const q = query
-      .toLowerCase()
-      .normalize("NFD")
-      .replace(/[̀-ͯ]/g, "")
-      .trim();
-    if (!q) return all;
-    return all.filter((e) =>
-      `${e.label} ${e.group} ${e.keywords ?? ""}`
-        .toLowerCase()
-        .normalize("NFD")
-        .replace(/[̀-ͯ]/g, "")
-        .includes(q),
-    );
-  }, [groups, query]);
+    const f = fold(q);
+    if (!f) return pages;
+    const matchingPages = pages.filter((e) => fold(`${e.label} ${e.group} ${e.keywords ?? ""}`).includes(f));
+    const data = hits.q === q ? hits.items.map((h) => ({ href: h.href, label: h.title, sub: h.subtitle, ...hitMeta[h.kind] })) : [];
+    return [...matchingPages, ...data];
+  }, [groups, q, hits]);
 
   useEffect(() => inputRef.current?.focus(), []);
 
@@ -426,10 +461,10 @@ function CommandPalette({ groups, onClose }: { groups: Group[]; onClose: () => v
         aria-label="Rechercher"
         onClick={(e) => e.stopPropagation()}
         onKeyDown={onKeyDown}
-        className="w-full max-w-[560px] overflow-hidden rounded-xl border border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]"
+        className="w-full max-w-[600px] overflow-hidden rounded-xl border border-line-strong bg-panel shadow-[0_30px_80px_-20px_rgb(0_0_0/0.9)]"
       >
         <div className="flex items-center gap-2.5 border-b border-line px-3.5">
-          <Search size={16} className="text-muted" aria-hidden />
+          {searching ? <Loader2 size={16} className="animate-spin text-muted" aria-hidden /> : <Search size={16} className="text-muted" aria-hidden />}
           <input
             ref={inputRef}
             value={query}
@@ -437,16 +472,21 @@ function CommandPalette({ groups, onClose }: { groups: Group[]; onClose: () => v
               setQuery(e.target.value);
               setIndex(0);
             }}
-            placeholder="Aller à une page…"
-            aria-label="Rechercher une page"
-            className="h-12 flex-1 bg-transparent text-[15px] text-fg outline-none placeholder:text-muted/70"
+            placeholder="Page, client, commande, bobine…"
+            aria-label="Rechercher une page ou une donnée"
+            className="h-12 flex-1 bg-transparent text-base text-fg outline-none placeholder:text-muted/70 sm:text-[15px]"
           />
-          <kbd className="rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-muted">Échap</kbd>
+          <kbd className="hidden rounded border border-line px-1.5 py-0.5 font-mono text-[10px] text-muted sm:block">Échap</kbd>
         </div>
-        <ul role="listbox" className="max-h-[50vh] overflow-y-auto p-1.5">
-          {entries.length === 0 && <li className="px-3 py-6 text-center text-sm text-muted">Aucun résultat.</li>}
+        <ul role="listbox" className="max-h-[55vh] overflow-y-auto p-1.5">
+          {entries.length === 0 && (
+            <li className="px-3 py-6 text-center text-sm text-muted">{searching ? "Recherche…" : "Aucun résultat."}</li>
+          )}
           {entries.map((e, i) => (
-            <li key={e.href + e.label} role="option" aria-selected={i === index}>
+            <li key={`${e.href}-${e.label}-${i}`} role="option" aria-selected={i === index}>
+              {(i === 0 || entries[i - 1].group !== e.group) && q && (
+                <p className="px-2.5 pb-1 pt-2 text-[10.5px] font-medium uppercase tracking-wide text-muted">{e.group}</p>
+              )}
               <button
                 type="button"
                 onMouseEnter={() => setIndex(i)}
@@ -455,10 +495,13 @@ function CommandPalette({ groups, onClose }: { groups: Group[]; onClose: () => v
                   i === index ? "bg-fg/[0.07] text-fg" : "text-fg/75"
                 }`}
               >
-                <e.icon size={15} className={i === index ? "text-accent" : "text-muted"} aria-hidden />
-                <span className="flex-1">{e.label}</span>
-                <span className="text-[11.5px] text-muted">{e.group}</span>
-                {i === index && <CornerDownLeft size={13} className="text-muted" aria-hidden />}
+                <e.icon size={15} className={`shrink-0 ${i === index ? "text-accent" : "text-muted"}`} aria-hidden />
+                <span className="min-w-0 flex-1">
+                  <span className="block truncate">{e.label}</span>
+                  {e.sub && <span className="block truncate text-[11.5px] text-muted">{e.sub}</span>}
+                </span>
+                {!q && <span className="text-[11.5px] text-muted">{e.group}</span>}
+                {i === index && <CornerDownLeft size={13} className="shrink-0 text-muted" aria-hidden />}
               </button>
             </li>
           ))}

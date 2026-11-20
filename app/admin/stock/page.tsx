@@ -7,9 +7,11 @@ import { getConsumables, getMovements, getStock } from "@/lib/stock-server";
 
 export const metadata = { title: "Stock" };
 
-export default async function AdminStock() {
+export default async function AdminStock({ searchParams }: { searchParams: Promise<{ tab?: string }> }) {
   await requireAdmin();
   const [spools, movements, consumables, tariffs] = await Promise.all([getStock(), getMovements(), getConsumables(), getTariffs()]);
+  const { tab } = await searchParams;
+  const initialTab = tab === "consommables" || tab === "historique" ? tab : "filament";
   const kg = spools.reduce((n, s) => n + Number(s.grams_left), 0) / 1000;
   const low = spools.filter(isLow).length + consumables.filter((c) => Number(c.quantity) <= Number(c.alert_quantity)).length;
 
@@ -19,7 +21,7 @@ export default async function AdminStock() {
         title="Stock"
         description={`${spools.length} bobine(s) · ${kg.toLocaleString("fr-FR", { maximumFractionDigits: 1 })} kg de filament${low ? ` · ${low} à racheter` : ""}`}
       />
-      <StockView spools={spools} movements={movements} consumables={consumables} tariffs={tariffs} nowIso={new Date().toISOString()} />
+      <StockView spools={spools} movements={movements} consumables={consumables} tariffs={tariffs} nowIso={new Date().toISOString()} initialTab={initialTab} />
     </div>
   );
 }

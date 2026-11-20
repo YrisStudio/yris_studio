@@ -1,0 +1,24 @@
+{
+  "name": "Gestionnaire Yris",
+  "short_name": "Yris",
+  "description": "Commandes, atelier, stock et clients de Yris Studio.",
+  "id": "/admin",
+  "start_url": "/admin",
+  "scope": "/",
+  "display": "standalone",
+  "orientation": "any",
+  "background_color": "#0b0b0a",
+  "theme_color": "#0b0b0a",
+  "lang": "fr",
+  "icons": [
+    { "src": "/brand/yris-icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "any" },
+    { "src": "/brand/yris-icone-512.png", "sizes": "512x512", "type": "image/png", "purpose": "maskable" },
+    { "src": "/apple-icon.png", "sizes": "180x180", "type": "image/png" }
+  ],
+  "shortcuts": [
+    { "name": "Commandes", "url": "/admin/commandes" },
+    { "name": "Impressions", "url": "/admin/atelier" },
+    { "name": "Stock", "url": "/admin/stock" },
+    { "name": "Calculateur de prix", "url": "/admin/outils#prix" }
+  ]
+}

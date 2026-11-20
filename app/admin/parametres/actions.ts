@@ -2,6 +2,7 @@
 
 import { revalidatePath } from "next/cache";
 import { isAdmin } from "@/lib/admin";
+import { companyFields, sanitizeCompany } from "@/lib/company";
 import { quoteMaterials, sanitizeTariffs } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
 
@@ -39,4 +40,19 @@ export async function saveTariffs(_prev: SettingsState, formData: FormData): Pro
   }
   revalidatePath("/admin", "layout");
   return { status: "success", message: "Tarifs enregistrés" };
+}
+
+export async function saveCompany(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const company = sanitizeCompany(Object.fromEntries(companyFields.map(({ key }) => [key, String(formData.get(key) ?? "")])));
+  const supabase = await createClient();
+  const { error } = await supabase
+    .from("admin_settings")
+    .upsert({ key: "company", value: company, updated_at: new Date().toISOString() });
+  if (error) {
+    console.error("Entreprise :", error.message);
+    return { status: "error", message: "Impossible d'enregistrer les infos." };
+  }
+  revalidatePath("/admin", "layout");
+  return { status: "success", message: "Infos enregistrées" };
 }

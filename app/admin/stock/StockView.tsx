@@ -38,14 +38,16 @@ export default function StockView({
   consumables,
   tariffs,
   nowIso,
+  initialTab = "filament",
 }: {
   spools: Spool[];
   movements: StockMovement[];
   consumables: Consumable[];
   tariffs: Tariffs;
   nowIso: string;
+  initialTab?: Tab;
 }) {
-  const [tab, setTab] = useState<Tab>("filament");
+  const [tab, setTab] = useState<Tab>(initialTab);
   const [pending, start] = useTransition();
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
   const [adding, setAdding] = useState(spools.length === 0);
