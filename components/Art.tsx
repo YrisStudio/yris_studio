@@ -3,7 +3,7 @@ import { Mono } from "@/components/ui";
 import { materials, type Category } from "@/lib/site";
 
 // Résistance à la chaleur, en °C, pour les barres du comparatif.
-const heatValues: Record<string, number> = { PLA: 55, PETG: 75, ABS: 95, ASA: 95 };
+const heatValues: Record<string, number> = { PLA: 55, PETG: 75 };
 
 function Stat({ icon: Icon, label, value, note }: { icon: LucideIcon; label: string; value: string; note?: string }) {
   return (
@@ -62,7 +62,7 @@ export function QuoteDashboard() {
       </div>
 
       <div className="mx-5 grid grid-cols-2 overflow-hidden rounded-xl border border-line sm:grid-cols-5">
-        <Stat icon={Layers} label="Matériau" value="ASA" note="anti-UV" />
+        <Stat icon={Layers} label="Matériau" value="PETG" note="tient 75 °C" />
         <Stat icon={Package} label="Quantité" value="10" />
         <Stat icon={Clock} label="Impression" value="3 h 20" />
         <Stat icon={Box} label="Matière" value="46 g" />
@@ -102,11 +102,11 @@ export function QuoteDashboard() {
           <div className="mt-5 space-y-3.5">
             {materials.map((m, i) => (
               <div key={m.name} className="grid grid-cols-[48px_1fr_48px] items-center gap-3 font-mono text-[11px]">
-                <span className={m.name === "ASA" ? "text-fg" : "text-muted"}>{m.name}</span>
+                <span className={m.name === "PETG" ? "text-fg" : "text-muted"}>{m.name}</span>
                 <span className="h-3 overflow-hidden rounded-sm bg-fg/5">
                   <span
                     className="grow-x block h-full rounded-sm bg-gradient-to-r from-accent to-accent-2"
-                    style={{ width: `${heatValues[m.name]}%`, opacity: m.name === "ASA" ? 1 : 0.45, ["--d2" as string]: `${i * 120}ms` }}
+                    style={{ width: `${heatValues[m.name]}%`, opacity: m.name === "PETG" ? 1 : 0.45, ["--d2" as string]: `${i * 120}ms` }}
                   />
                 </span>
                 <span className="text-right text-fg/80">{heatValues[m.name]} °C</span>
@@ -142,7 +142,7 @@ export function StepUpload() {
 
 export function StepQuote() {
   const rows = [
-    { k: "Matériau", v: "ASA" },
+    { k: "Matériau", v: "PETG" },
     { k: "Impression", v: "3 h 20" },
     { k: "Quantité", v: "10" },
   ];
@@ -225,7 +225,7 @@ export function CarPartCard() {
           </text>
         </svg>
         <div className="mt-3 flex justify-between font-mono text-[11px]">
-          <span className="text-muted">ASA · tient jusqu&apos;à 95 °C</span>
+          <span className="text-muted">PETG · tient jusqu&apos;à 75 °C</span>
           <span className="text-fg">Aux cotes d&apos;origine</span>
         </div>
       </div>

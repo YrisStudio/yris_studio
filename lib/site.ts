@@ -68,15 +68,15 @@ export const products: Product[] = [
     name: "Support téléphone",
     category: "Auto",
     priceCents: 1200,
-    material: "ASA",
-    text: "Se fixe sur la grille d'aération. Résiste à la chaleur de l'habitacle.",
+    material: "PETG",
+    text: "Se fixe sur la grille d'aération. Solide et résistant à la chaleur de l'habitacle.",
   },
   {
     slug: "cache-crochet-remorquage",
     name: "Cache crochet de remorquage",
     category: "Auto",
     priceCents: null,
-    material: "ASA",
+    material: "PETG",
     text: "Reproduit à l'identique d'après votre modèle de véhicule.",
   },
   {
@@ -84,7 +84,7 @@ export const products: Product[] = [
     name: "Bouton de tableau de bord",
     category: "Auto",
     priceCents: null,
-    material: "ABS",
+    material: "PETG",
     text: "Un bouton cassé ou introuvable ? On le remodélise et on l'imprime.",
   },
   {
@@ -131,9 +131,7 @@ export const products: Product[] = [
 
 export const materials = [
   { name: "PLA", use: "Objets du quotidien, déco, prototypes", heat: "jusqu'à 55 °C" },
-  { name: "PETG", use: "Pièces solides, usage extérieur léger", heat: "jusqu'à 75 °C" },
-  { name: "ABS", use: "Pièces techniques, intérieur auto", heat: "jusqu'à 95 °C" },
-  { name: "ASA", use: "Pièces auto exposées au soleil", heat: "jusqu'à 95 °C, anti-UV" },
+  { name: "PETG", use: "Pièces solides, intérieur auto, usage extérieur", heat: "jusqu'à 75 °C" },
 ];
 
 export const steps = [
@@ -153,7 +151,7 @@ export const faq = [
   },
   {
     q: "Les pièces auto résistent-elles à la chaleur ?",
-    a: "Oui, pour l'intérieur d'une voiture on utilise de l'ABS ou de l'ASA, qui supportent bien plus de chaleur que le PLA.",
+    a: "Pour l'intérieur d'une voiture, on utilise du PETG : il tient jusqu'à 75 °C, bien plus que le PLA. Pour une pièce posée en plein soleil sur le tableau de bord, on en parle ensemble avant de l'imprimer.",
   },
   {
     q: "Comment se passe le paiement ?",

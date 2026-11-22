@@ -1,11 +1,15 @@
 import { FileUp, Lightbulb, ShoppingBag } from "lucide-react";
 import { CarPartCard, QuoteDashboard } from "@/components/Art";
 import { CountUp, Spotlight, TiltOnScroll } from "@/components/motion";
-import { Faq, FinalCta, HowItWorks, Manifesto, Materials, MaterialsMarquee, stagger } from "@/components/sections";
+import { Faq, FinalCta, HowItWorks, Manifesto, Materials, MaterialsMarquee, ProductCard, stagger } from "@/components/sections";
 import { Container, Eyebrow, Mono, PrimaryLink, SecondaryLink, SectionTitle, TextLink } from "@/components/ui";
-import { materials } from "@/lib/site";
+import { materials, products } from "@/lib/site";
 
 const title = "Vos idées. Imprimées.".split(" ");
+
+// Mini boutique de l'accueil : un article par univers, avec un prix fixe.
+const featuredSlugs = ["support-telephone-grille", "organiseur-tiroir", "support-casque"];
+const featured = featuredSlugs.map((slug) => products.find((p) => p.slug === slug)).filter((p) => p !== undefined);
 
 const starts = [
   { icon: FileUp, title: "Sur mesure", text: "Un fichier STL, une photo ou des mesures. On s'occupe du reste.", href: "/demande?type=sur-mesure", cta: "Envoyer" },
@@ -63,25 +67,24 @@ export default function Home() {
       <Manifesto />
       <HowItWorks />
 
-      {/* Noir : pièces auto */}
+      {/* Noir : mini boutique (une sélection, le reste sur /boutique) */}
       <section className="relative overflow-hidden py-28">
-        <div className="pointer-events-none absolute -right-40 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-fg/[0.05] blur-[120px]" />
-        <Container className="relative grid items-center gap-16 md:grid-cols-2">
-          <div data-reveal>
-            <Eyebrow>Pièces auto</Eyebrow>
-            <h2 className="mt-5 text-[34px] font-medium leading-[1.1] tracking-tight sm:text-5xl">
-              La pièce introuvable, recréée.
-            </h2>
-            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
-              Clips, caches, boutons, supports. Reproduits d&apos;après votre pièce cassée, en ABS ou ASA résistants à la
-              chaleur de l&apos;habitacle.
-            </p>
-            <div className="mt-8">
-              <PrimaryLink href="/demande?type=sur-mesure">Demander une pièce auto</PrimaryLink>
+        <div className="pointer-events-none absolute -right-40 top-1/3 h-96 w-96 rounded-full bg-fg/[0.05] blur-[120px]" />
+        <Container className="relative">
+          <div data-reveal className="mb-10 flex flex-wrap items-end justify-between gap-6">
+            <div>
+              <Eyebrow>Boutique</Eyebrow>
+              <h2 className="mt-5 text-[34px] font-medium leading-[1.1] tracking-tight sm:text-5xl">Prêt à imprimer.</h2>
+              <p className="mt-4 max-w-md text-[15px] leading-relaxed text-muted">
+                Une sélection de nos articles, imprimés à la commande. Couleur au choix.
+              </p>
             </div>
+            <SecondaryLink href="/boutique">Voir toute la boutique ({products.length})</SecondaryLink>
           </div>
-          <div data-reveal style={stagger(2, 100)} className="grid-bg rounded-2xl border border-line bg-panel px-8 py-14">
-            <CarPartCard />
+          <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+            {featured.map((p, i) => (
+              <ProductCard key={p.slug} product={p} index={i} showFavorite={false} />
+            ))}
           </div>
         </Container>
       </section>
@@ -122,13 +125,14 @@ export default function Home() {
             <div data-reveal style={stagger(4)} className="md:col-span-2">
               <Spotlight className="h-full p-6">
                 <Mono>Matériaux</Mono>
-                <div className="mt-6 grid grid-cols-2 gap-3 sm:grid-cols-4">
+                <div className="mt-6 grid grid-cols-2 gap-3">
                   {materials.map((m) => (
                     <div
                       key={m.name}
                       className="rounded-lg border border-line bg-panel-2 p-3 transition-all duration-300 hover:-translate-y-1 hover:border-accent"
                     >
                       <p className="text-xl font-medium">{m.name}</p>
+                      <p className="mt-1 text-[12px] text-fg/80">{m.use}</p>
                       <p className="mt-1 font-mono text-[10px] text-muted">{m.heat}</p>
                     </div>
                   ))}
@@ -144,6 +148,29 @@ export default function Home() {
 
       {/* Noir */}
       <Materials />
+      {/* Noir : pièces auto, juste après les matériaux */}
+      <section className="relative overflow-hidden pb-28 pt-4">
+        <div className="pointer-events-none absolute -right-40 top-1/2 h-96 w-96 -translate-y-1/2 rounded-full bg-fg/[0.05] blur-[120px]" />
+        <Container className="relative grid items-center gap-16 md:grid-cols-2">
+          <div data-reveal>
+            <Eyebrow>Pièces auto</Eyebrow>
+            <h2 className="mt-5 text-[34px] font-medium leading-[1.1] tracking-tight sm:text-5xl">
+              La pièce introuvable, recréée.
+            </h2>
+            <p className="mt-5 max-w-md text-[15px] leading-relaxed text-muted">
+              Clips, caches, boutons, supports. Reproduits d&apos;après votre pièce cassée, en PETG, solide et résistant à
+              la chaleur de l&apos;habitacle.
+            </p>
+            <div className="mt-8">
+              <PrimaryLink href="/demande?type=sur-mesure">Demander une pièce auto</PrimaryLink>
+            </div>
+          </div>
+          <div data-reveal style={stagger(2, 100)} className="grid-bg rounded-2xl border border-line bg-panel px-8 py-14">
+            <CarPartCard />
+          </div>
+        </Container>
+      </section>
+
       {/* Blanc */}
       <Faq />
       {/* Noir */}
