@@ -1,8 +1,7 @@
 import { orderRef, site } from "@/lib/site";
 
 // Envoi d'emails via l'API Resend (https://resend.com/docs/api-reference/emails/send-email).
-// Les emails aux clients utilisent des templates stockés chez Resend : leur texte se modifie
-// depuis le tableau de bord Resend, sans redéployer le site.
+// Les emails aux clients sont écrits ici (clientEmail) : leur texte se modifie dans ce fichier.
 
 const FROM = () => process.env.CONTACT_FROM_EMAIL ?? "Yris <onboarding@resend.dev>";
 export const emailEnabled = () => Boolean(process.env.RESEND_API_KEY);
@@ -116,11 +115,46 @@ export async function notifyOwner(p: {
   });
 }
 
-// Les variables {{{…}}} sont insérées telles quelles dans le HTML : on échappe ce que le client a saisi.
 const firstName = (name: string | null | undefined) => escapeHtml(name?.trim().split(/\s+/)[0] || "à vous");
 const accountLink = (hasAccount: boolean) => `${site.url}${hasAccount ? "/compte" : ""}`;
 
-// Template « demande-recue » : confirmation envoyée au client juste après sa demande.
+// Mise en page commune des emails clients : tableaux et styles en ligne, pour Gmail, Outlook et Apple Mail.
+// `rows` et `intro` sont déjà en HTML sûr (les saisies du client sont échappées avant).
+function clientEmail(p: { preview: string; title: string; intro: string; rows: [string, string][]; link: string; linkLabel: string }) {
+  const rows = p.rows
+    .map(
+      ([k, v]) =>
+        `<tr><td style="padding:8px 0;color:#6b6b66;font-size:13px;vertical-align:top;width:120px">${k}</td><td style="padding:8px 0;color:#151513;font-size:14px">${v}</td></tr>`,
+    )
+    .join("");
+  return `<!doctype html><html lang="fr"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>${p.title}</title></head>
+<body style="margin:0;padding:0;background:#f4f4f1">
+<span style="display:none;max-height:0;overflow:hidden;opacity:0">${p.preview}</span>
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="background:#f4f4f1"><tr><td align="center" style="padding:32px 16px">
+<table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="max-width:560px;background:#ffffff;border:1px solid #e4e4df;border-radius:12px;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Roboto,Helvetica,Arial,sans-serif">
+<tr><td style="padding:28px 32px 0"><img src="${site.url}/brand/yris-logo-horizontal-light-transparent.png" width="120" alt="Yris Studio" style="display:block;border:0;height:auto"></td></tr>
+<tr><td style="padding:24px 32px 8px"><h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#151513">${p.title}</h1>
+<p style="margin:0;font-size:15px;line-height:1.6;color:#33332f">${p.intro}</p></td></tr>
+<tr><td style="padding:8px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #ecece7;border-bottom:1px solid #ecece7">${rows}</table></td></tr>
+<tr><td style="padding:20px 32px 8px"><a href="${p.link}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:8px">${p.linkLabel}</a></td></tr>
+<tr><td style="padding:16px 32px 28px;font-size:13px;line-height:1.6;color:#6b6b66">Une question ? Répondez simplement à cet email.<br>L'équipe Yris Studio</td></tr>
+</table>
+<p style="margin:16px 0 0;font-family:Arial,sans-serif;font-size:12px;color:#9a9a94">Yris Studio · impression 3D · <a href="${site.url}" style="color:#9a9a94">yris-studio.com</a></p>
+</td></tr></table></body></html>`;
+}
+
+// Version texte des mêmes emails (lue par les messageries sans HTML et utile contre le spam).
+const plain = (html: string) =>
+  html
+    .replace(/<br\s*\/?>/g, "\n")
+    .replace(/<[^>]+>/g, "")
+    .replace(/&amp;/g, "&")
+    .replace(/&lt;/g, "<")
+    .replace(/&gt;/g, ">")
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'");
+
+// Confirmation envoyée au client juste après sa demande. `summary` est déjà en HTML échappé.
 export function sendRequestConfirmation(p: {
   orderId: string;
   to: string;
@@ -129,20 +163,21 @@ export function sendRequestConfirmation(p: {
   summary: string;
   hasAccount: boolean;
 }) {
+  const ref = orderRef(p.orderId);
+  const link = accountLink(p.hasAccount);
+  const intro = `Bonjour ${firstName(p.name)}, on a bien reçu votre demande. On l'étudie et on revient vers vous très vite avec un prix, en général sous 24 à 48 h.`;
+  const rows: [string, string][] = [
+    ["Référence", `<b>${ref}</b>`],
+    ["Type", escapeHtml(p.kindLabel)],
+    ["Détails", p.summary || "—"],
+  ];
   return send(
     {
       to: [p.to],
       reply_to: ownerEmail(),
-      template: {
-        id: "demande-recue",
-        variables: {
-          PRENOM: firstName(p.name),
-          TYPE_DEMANDE: p.kindLabel.toLowerCase(),
-          REFERENCE: orderRef(p.orderId),
-          RESUME: p.summary,
-          LIEN: accountLink(p.hasAccount),
-        },
-      },
+      subject: `Demande reçue · ${ref}`,
+      html: clientEmail({ preview: `On a bien reçu votre demande ${ref}.`, title: "Demande bien reçue", intro, rows, link, linkLabel: p.hasAccount ? "Suivre ma demande" : "Voir le site" }),
+      text: `${plain(intro)}\n\nRéférence : ${ref}\n${plain(p.summary)}\n\n${link}\n\nUne question ? Répondez simplement à cet email.\nL'équipe Yris Studio`,
     },
     `demande-recue-${p.orderId}`,
   );
@@ -167,7 +202,7 @@ const statusCopy: Record<string, { title: string; message: string }> = {
   },
 };
 
-// Template « statut-commande » : envoyé au client à chaque changement de statut (sauf « reçue »).
+// Envoyé au client à chaque changement de statut (sauf « reçue »).
 export function sendStatusUpdate(p: {
   orderId: string;
   to: string | null;
@@ -178,22 +213,23 @@ export function sendStatusUpdate(p: {
 }) {
   const copy = statusCopy[p.status];
   if (!copy || !p.to || !emailEnabled()) return Promise.resolve(false);
+  const ref = orderRef(p.orderId);
+  const link = accountLink(p.hasAccount);
+  const status = p.status.charAt(0).toUpperCase() + p.status.slice(1);
+  const price = escapeHtml(p.priceLabel ?? "à confirmer");
+  const intro = `Bonjour ${firstName(p.name)}, ${copy.message}`;
+  const rows: [string, string][] = [
+    ["Référence", `<b>${ref}</b>`],
+    ["Statut", escapeHtml(status)],
+    ...(p.status === "annulée" ? [] : ([["Prix", `<b>${price}</b>`]] as [string, string][])),
+  ];
   return send(
     {
       to: [p.to],
       reply_to: ownerEmail(),
-      template: {
-        id: "statut-commande",
-        variables: {
-          PRENOM: firstName(p.name),
-          REFERENCE: orderRef(p.orderId),
-          TITRE: copy.title,
-          MESSAGE: copy.message,
-          STATUT: p.status.charAt(0).toUpperCase() + p.status.slice(1),
-          PRIX: p.priceLabel ?? "à confirmer",
-          LIEN: accountLink(p.hasAccount),
-        },
-      },
+      subject: `${copy.title} · ${ref}`,
+      html: clientEmail({ preview: `${copy.title} (${ref}).`, title: copy.title, intro, rows, link, linkLabel: p.hasAccount ? "Voir ma commande" : "Voir le site" }),
+      text: `${plain(intro)}\n\nRéférence : ${ref}\nStatut : ${status}${p.status === "annulée" ? "" : `\nPrix : ${p.priceLabel ?? "à confirmer"}`}\n\n${link}\n\nUne question ? Répondez simplement à cet email.\nL'équipe Yris Studio`,
     },
     `statut-${p.orderId}-${p.status}`,
   );
