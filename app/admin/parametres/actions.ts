@@ -1,7 +1,8 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isAdmin } from "@/lib/admin";
+import { getMe, isManager } from "@/lib/admin";
+import { roles } from "@/lib/team";
 import { companyFields, sanitizeCompany } from "@/lib/company";
 import { quoteMaterials, sanitizeTariffs } from "@/lib/pricing";
 import { createClient } from "@/lib/supabase/server";
@@ -19,7 +20,7 @@ const number = (v: FormDataEntryValue | null) => {
 };
 
 export async function saveTariffs(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  if (!(await isManager())) return { status: "error", message: "Accès refusé." };
   const tariffs = sanitizeTariffs({
     materials: Object.fromEntries(quoteMaterials.map((m) => [m, euros(formData.get(`mat_${m}`))])),
     machineHourCents: euros(formData.get("machine")),
@@ -44,7 +45,7 @@ export async function saveTariffs(_prev: SettingsState, formData: FormData): Pro
 
 // Remise à zéro des chiffres : les ventes terminées avant cette date ne comptent plus (rien n'est supprimé).
 export async function setStatsReset(reset: boolean): Promise<SettingsState> {
-  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  if (!(await isManager())) return { status: "error", message: "Accès refusé." };
   const supabase = await createClient();
   // Annuler = valeur vide (getStatsResetAt n'y voit alors aucune date).
   const now = new Date().toISOString();
@@ -58,7 +59,7 @@ export async function setStatsReset(reset: boolean): Promise<SettingsState> {
 }
 
 export async function saveCompany(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
-  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  if (!(await isManager())) return { status: "error", message: "Accès refusé." };
   const company = sanitizeCompany(Object.fromEntries(companyFields.map(({ key }) => [key, String(formData.get(key) ?? "")])));
   const supabase = await createClient();
   const { error } = await supabase
@@ -70,4 +71,62 @@ export async function saveCompany(_prev: SettingsState, formData: FormData): Pro
   }
   revalidatePath("/admin", "layout");
   return { status: "success", message: "Infos enregistrées" };
+}
+
+// --- Équipe -------------------------------------------------------------------
+const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
+const isRole = (r: string) => (roles as readonly string[]).includes(r);
+
+// Ajoute un membre : tout de suite s'il a déjà un compte, sinon invitation (il devient membre en confirmant son compte).
+export async function addMember(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  if (!(await isManager())) return { status: "error", message: "Réservé aux gérants." };
+  const email = String(formData.get("email") ?? "").trim().toLowerCase();
+  const name = String(formData.get("name") ?? "").trim().slice(0, 40);
+  const role = String(formData.get("role") ?? "");
+  if (!EMAIL_RE.test(email)) return { status: "error", message: "Adresse email invalide." };
+  if (name.length < 2) return { status: "error", message: "Indique un prénom." };
+  if (!isRole(role)) return { status: "error", message: "Rôle inconnu." };
+  const supabase = await createClient();
+  const { data, error } = await supabase.rpc("add_team_member", { p_email: email, p_name: name, p_role: role });
+  if (error) return { status: "error", message: "Impossible d'ajouter ce membre." };
+  revalidatePath("/admin", "layout");
+  return {
+    status: "success",
+    message:
+      data === "ajouté"
+        ? `${name} a maintenant accès au gestionnaire.`
+        : `${name} est invité : il aura accès dès qu'il aura créé et confirmé son compte sur le site avec ${email}.`,
+  };
+}
+
+export async function setMemberRole(userId: string, role: string): Promise<SettingsState> {
+  const me = await getMe();
+  if (me?.role !== "gérant") return { status: "error", message: "Réservé aux gérants." };
+  if (userId === me.userId) return { status: "error", message: "Tu ne peux pas changer ton propre rôle." };
+  if (!isRole(role)) return { status: "error", message: "Rôle inconnu." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("admins").update({ role }).eq("user_id", userId);
+  if (error) return { status: "error", message: "Impossible de changer le rôle." };
+  revalidatePath("/admin", "layout");
+  return { status: "success", message: "Rôle mis à jour." };
+}
+
+export async function removeMember(userId: string): Promise<SettingsState> {
+  const me = await getMe();
+  if (me?.role !== "gérant") return { status: "error", message: "Réservé aux gérants." };
+  if (userId === me.userId) return { status: "error", message: "Tu ne peux pas te retirer toi-même." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("admins").delete().eq("user_id", userId);
+  if (error) return { status: "error", message: "Impossible de retirer ce membre." };
+  revalidatePath("/admin", "layout");
+  return { status: "success", message: "Accès retiré. Son compte client reste sur le site." };
+}
+
+export async function cancelInvite(email: string): Promise<SettingsState> {
+  if (!(await isManager())) return { status: "error", message: "Réservé aux gérants." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("admin_invites").delete().eq("email", email);
+  if (error) return { status: "error", message: "Impossible d'annuler l'invitation." };
+  revalidatePath("/admin/parametres");
+  return { status: "success", message: "Invitation annulée." };
 }

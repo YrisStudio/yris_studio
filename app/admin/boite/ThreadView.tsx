@@ -5,7 +5,7 @@ import Link from "next/link";
 import { LoaderCircle, Paperclip, Send, UserRound } from "lucide-react";
 import { assignThread, replyThread, setThreadStatus } from "./actions";
 import { clientKey } from "@/lib/clients";
-import { inboxStatuses, inboxStatusMeta, team, type InboxMessage, type InboxThread } from "@/lib/inbox";
+import { inboxStatuses, inboxStatusMeta, type InboxMessage, type InboxThread } from "@/lib/inbox";
 
 const dateTime = new Intl.DateTimeFormat("fr-FR", { dateStyle: "medium", timeStyle: "short", timeZone: "Europe/Paris" });
 const select =
@@ -59,7 +59,7 @@ function Message({ m }: { m: InboxMessage }) {
   );
 }
 
-export default function ThreadView({ thread, messages }: { thread: InboxThread; messages: InboxMessage[] }) {
+export default function ThreadView({ thread, messages, team }: { thread: InboxThread; messages: InboxMessage[]; team: string[] }) {
   const [pending, start] = useTransition();
   const [text, setText] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -93,7 +93,7 @@ export default function ThreadView({ thread, messages }: { thread: InboxThread; 
             <label className="sr-only" htmlFor="th-who">Confier à</label>
             <select id="th-who" value={thread.assignedTo ?? ""} disabled={pending} onChange={(e) => run(() => assignThread(thread.key, e.target.value))} className={select}>
               <option value="">Personne</option>
-              {team.map((p) => (
+              {(thread.assignedTo && !team.includes(thread.assignedTo) ? [...team, thread.assignedTo] : team).map((p) => (
                 <option key={p}>{p}</option>
               ))}
             </select>

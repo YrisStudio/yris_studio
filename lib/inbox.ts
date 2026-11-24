@@ -4,7 +4,6 @@ export const inboxStatuses = ["nouveau", "en cours", "traité"] as const;
 export type InboxStatus = (typeof inboxStatuses)[number];
 
 // Personnes à qui on peut confier une conversation.
-export const team = ["Raphaël", "Johann"] as const;
 
 export type InboxMessage = {
   id: string;

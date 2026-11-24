@@ -1,9 +1,9 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isAdmin } from "@/lib/admin";
+import { getTeam, isAdmin } from "@/lib/admin";
 import { sendInboxReply } from "@/lib/email";
-import { inboxStatuses, team } from "@/lib/inbox";
+import { inboxStatuses } from "@/lib/inbox";
 import { getThread } from "@/lib/inbox-server";
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -21,7 +21,7 @@ export async function setThreadStatus(key: string, status: string): Promise<Inbo
 
 export async function assignThread(key: string, who: string): Promise<InboxState> {
   if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
-  const value = (team as readonly string[]).includes(who) ? who : null;
+  const value = (await getTeam()).some((m) => m.name === who) ? who : null;
   const supabase = await createClient();
   const { error } = await supabase.from("inbox_messages").update({ assigned_to: value }).eq("thread_key", key);
   if (error) return { status: "error", message: "Impossible d'assigner." };

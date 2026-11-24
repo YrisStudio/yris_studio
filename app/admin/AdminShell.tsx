@@ -35,7 +35,7 @@ type Item = { href: string; label: string; icon: LucideIcon; count?: number; ale
 type Group = { title: string; items: Item[] };
 
 // Menu du gestionnaire : il se remplit au fur et à mesure que les pages sont reconstruites.
-const groups: Group[] = [
+const allGroups: Group[] = [
   {
     title: "Pilotage",
     items: [{ href: "/admin", label: "Tableau de bord", icon: LayoutDashboard, keywords: "accueil chiffres" }],
@@ -147,7 +147,9 @@ function Count({ item, compact = false }: { item: Item; compact?: boolean }) {
   );
 }
 
-export default function AdminShell({ email, children }: { email: string; children: React.ReactNode }) {
+export default function AdminShell({ email, name, manager, children }: { email: string; name: string; manager: boolean; children: React.ReactNode }) {
+  // Paramètres (tarifs, entreprise, équipe) : réservés aux gérants.
+  const groups = manager ? allGroups : allGroups.map((g) => ({ ...g, items: g.items.filter((it) => it.href !== "/admin/parametres") })).filter((g) => g.items.length);
   const isActive = useIsActive();
   const pathname = usePathname();
   const [drawer, setDrawer] = useState(false);
@@ -278,10 +280,14 @@ export default function AdminShell({ email, children }: { email: string; childre
             </button>
           )}
           <div className={`mt-2 flex items-center gap-2 rounded-md border border-line ${mini ? "flex-col p-1.5" : "px-2 py-1.5"}`}>
-            <span className="grid size-6 shrink-0 place-items-center rounded bg-accent text-[11px] font-semibold text-on-accent" title={email}>
-              {email.charAt(0).toUpperCase()}
+            <span className="grid size-6 shrink-0 place-items-center rounded bg-accent text-[11px] font-semibold text-on-accent" title={`${name} · ${email}`}>
+              {name.charAt(0).toUpperCase()}
             </span>
-            {!mini && <span className="min-w-0 flex-1 truncate text-[11.5px] text-muted">{email}</span>}
+            {!mini && (
+              <span className="min-w-0 flex-1 truncate text-[12px] text-fg/85" title={email}>
+                {name}
+              </span>
+            )}
             <form action={signOut}>
               <button type="submit" aria-label="Se déconnecter" title="Se déconnecter" className="p-1 text-muted hover:text-fg">
                 <LogOut size={14} />

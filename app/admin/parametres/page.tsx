@@ -1,22 +1,40 @@
-import { BarChart3, Building2, Calculator, Mail } from "lucide-react";
+import { BarChart3, Building2, Calculator, Mail, Users } from "lucide-react";
 import PageHeader from "../PageHeader";
 import CompanyForm from "./CompanyForm";
 import ResetStats from "./ResetStats";
 import TariffsForm from "./TariffsForm";
-import { getStatsResetAt, requireAdmin } from "@/lib/admin";
+import TeamManager from "./TeamManager";
+import { getInvites, getMe, getStatsResetAt, getTeam, requireManager } from "@/lib/admin";
 import { emailEnabled } from "@/lib/email";
 import { getCompany, getTariffs } from "@/lib/settings";
 
 export const metadata = { title: "Paramètres" };
 
 export default async function AdminSettings() {
-  await requireAdmin();
-  const [tariffs, company, resetAt] = await Promise.all([getTariffs(), getCompany(), getStatsResetAt()]);
+  await requireManager();
+  const [tariffs, company, resetAt, team, invites, me] = await Promise.all([
+    getTariffs(),
+    getCompany(),
+    getStatsResetAt(),
+    getTeam(),
+    getInvites(),
+    getMe(),
+  ]);
   const mails = emailEnabled();
 
   return (
     <div className="space-y-4">
       <PageHeader title="Paramètres" description="Réglages de l'atelier." />
+      <section id="equipe" className="rounded-lg border border-line bg-panel">
+        <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+          <Users size={14} className="text-muted" aria-hidden />
+          <h2 className="text-[13px] font-medium">Équipe</h2>
+          <span className="ml-auto text-[11.5px] text-muted">Qui a accès au gestionnaire</span>
+        </header>
+        <div className="p-4">
+          <TeamManager team={team} invites={invites} meId={me?.userId ?? ""} />
+        </div>
+      </section>
       <section className="rounded-lg border border-line bg-panel">
         <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
           <Building2 size={14} className="text-muted" aria-hidden />

@@ -1,8 +1,7 @@
 import type { Metadata, Viewport } from "next";
 import { Suspense } from "react";
 import AdminShell from "./AdminShell";
-import { requireAdmin } from "@/lib/admin";
-import { getUser } from "@/lib/supabase/server";
+import { getMe, requireAdmin } from "@/lib/admin";
 
 export const metadata: Metadata = {
   title: { default: "Gestionnaire", template: "%s · Gestionnaire Yris" },
@@ -17,11 +16,11 @@ export const viewport: Viewport = { themeColor: "#0b0b0a" };
 // Gestionnaire : page à part, sans l'en-tête ni le pied de page du site.
 export default async function AdminLayout({ children }: { children: React.ReactNode }) {
   await requireAdmin();
-  const user = await getUser();
+  const me = await getMe();
 
   return (
     <Suspense>
-      <AdminShell email={user?.email ?? ""}>{children}</AdminShell>
+      <AdminShell email={me?.email ?? ""} name={me?.name ?? ""} manager={me?.role === "gérant"}>{children}</AdminShell>
     </Suspense>
   );
 }

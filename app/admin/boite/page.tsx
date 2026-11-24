@@ -2,7 +2,7 @@ import Link from "next/link";
 import { ArrowLeft, Inbox, MailWarning, Paperclip } from "lucide-react";
 import PageHeader from "../PageHeader";
 import ThreadView from "./ThreadView";
-import { requireAdmin } from "@/lib/admin";
+import { getTeam, requireAdmin } from "@/lib/admin";
 import { emailEnabled } from "@/lib/email";
 import { buildThreads, inboxStatusMeta, type InboxStatus } from "@/lib/inbox";
 import { getInboxMessages, syncInbox } from "@/lib/inbox-server";
@@ -31,7 +31,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   // À chaque ouverture : on va chercher chez Resend les mails arrivés depuis la dernière fois.
   const sync = await syncInbox();
-  const messages = await getInboxMessages();
+  const [messages, team] = await Promise.all([getInboxMessages(), getTeam()]);
   const threads = buildThreads(messages);
   const open = threads.filter((t) => t.status !== "traité");
   const shown = filter === "tous" ? threads : filter === "traites" ? threads.filter((t) => t.status === "traité") : open;
@@ -115,7 +115,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               <Link href={href()} className="mb-3 inline-flex items-center gap-1 text-[12.5px] text-muted hover:text-fg lg:hidden">
                 <ArrowLeft size={13} aria-hidden /> Conversations
               </Link>
-              <ThreadView thread={current} messages={currentMessages} />
+              <ThreadView thread={current} messages={currentMessages} team={team.map((m) => m.name)} />
             </>
           ) : (
             <div className="grid h-full min-h-60 place-items-center rounded-lg border border-dashed border-line text-[13px] text-muted">
