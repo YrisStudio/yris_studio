@@ -44,90 +44,29 @@ export const MAX_FILES_BYTES = 4 * 1024 * 1024;
 
 export type Category = "Auto" | "Maison" | "Bureau" | "Pratique";
 
+export const categories: Category[] = ["Auto", "Maison", "Bureau", "Pratique"];
+export const categoryLabel = (c: Category) => (c === "Pratique" ? "Pièces de rechange" : c);
+
+// Article de la boutique (table products, géré dans Gestionnaire → Produits ; voir lib/products.ts).
 export type Product = {
+  id: string;
   slug: string;
   name: string;
   category: Category;
   // Prix fixe en centimes, ou null si la pièce est sur devis.
   priceCents: number | null;
   material: string;
+  // Phrase courte (cartes) ; la description longue est sur la page de l'article.
   text: string;
+  description: string;
+  // Adresses publiques des photos, la première sert de couverture.
+  photos: string[];
+  colors: string[];
+  leadDays: number;
+  active: boolean;
+  featured: boolean;
+  position: number;
 };
-
-export const products: Product[] = [
-  {
-    slug: "clips-garnissage",
-    name: "Clips de garnissage",
-    category: "Auto",
-    priceCents: 400,
-    material: "PETG",
-    text: "Clips de remplacement pour panneaux de porte et garnitures. Lot de 10.",
-  },
-  {
-    slug: "support-telephone-grille",
-    name: "Support téléphone",
-    category: "Auto",
-    priceCents: 1200,
-    material: "PETG",
-    text: "Se fixe sur la grille d'aération. Solide et résistant à la chaleur de l'habitacle.",
-  },
-  {
-    slug: "cache-crochet-remorquage",
-    name: "Cache crochet de remorquage",
-    category: "Auto",
-    priceCents: null,
-    material: "PETG",
-    text: "Reproduit à l'identique d'après votre modèle de véhicule.",
-  },
-  {
-    slug: "bouton-tableau-de-bord",
-    name: "Bouton de tableau de bord",
-    category: "Auto",
-    priceCents: null,
-    material: "PETG",
-    text: "Un bouton cassé ou introuvable ? On le remodélise et on l'imprime.",
-  },
-  {
-    slug: "organiseur-tiroir",
-    name: "Organiseur de tiroir",
-    category: "Maison",
-    priceCents: 900,
-    material: "PLA",
-    text: "Modulable, aux dimensions exactes de votre tiroir.",
-  },
-  {
-    slug: "crochets-muraux",
-    name: "Crochets muraux",
-    category: "Maison",
-    priceCents: 600,
-    material: "PETG",
-    text: "Robustes et discrets, lot de 4. Couleur au choix.",
-  },
-  {
-    slug: "support-casque",
-    name: "Support de casque",
-    category: "Bureau",
-    priceCents: 1500,
-    material: "PLA",
-    text: "Se fixe sous le bureau, libère de la place.",
-  },
-  {
-    slug: "passe-cables",
-    name: "Passe-câbles",
-    category: "Bureau",
-    priceCents: 500,
-    material: "PLA",
-    text: "Fini les câbles qui tombent derrière le bureau. Lot de 6.",
-  },
-  {
-    slug: "pieces-detachees",
-    name: "Pièce de rechange",
-    category: "Pratique",
-    priceCents: null,
-    material: "Selon usage",
-    text: "Électroménager, jouet, meuble : on recrée la pièce qui manque.",
-  },
-];
 
 export const materials = [
   { name: "PLA", use: "Objets du quotidien, déco, prototypes", heat: "jusqu'à 55 °C" },
@@ -158,6 +97,9 @@ export const faq = [
     a: "Une fois le devis validé, on vous envoie les modalités de paiement par email avant de lancer l'impression.",
   },
 ];
+
+// Livraison forfaitaire des commandes de la boutique (retrait en main propre gratuit).
+export const SHOP_SHIPPING_CENTS = 690;
 
 export function formatPrice(cents: number | null) {
   if (cents === null) return "Sur devis";

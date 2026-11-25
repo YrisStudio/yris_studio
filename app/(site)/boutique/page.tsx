@@ -1,62 +1,106 @@
 import type { Metadata } from "next";
+import Link from "next/link";
 import { FinalCta, ProductCard } from "@/components/sections";
 import { Container, Eyebrow } from "@/components/ui";
 import { getFavoriteSlugs } from "@/lib/favorites";
+import { getProducts } from "@/lib/products";
 import { authEnabled } from "@/lib/supabase/server";
-import { products, type Category } from "@/lib/site";
+import { categories, categoryLabel, type Category } from "@/lib/site";
 
 export const metadata: Metadata = {
   title: "Boutique",
   description: "Pièces auto, objets pour la maison et le bureau, imprimés en 3D à la commande.",
 };
 
-const order: Category[] = ["Auto", "Maison", "Bureau", "Pratique"];
+const sorts = [
+  { id: "", label: "Sélection", title: "Notre sélection" },
+  { id: "prix", label: "Prix ↑", title: "Prix croissant" },
+  { id: "prix-desc", label: "Prix ↓", title: "Prix décroissant" },
+] as const;
 
-export default async function BoutiquePage() {
-  const favorites = await getFavoriteSlugs();
+export default async function BoutiquePage({ searchParams }: { searchParams: Promise<{ categorie?: string; tri?: string }> }) {
+  const { categorie, tri } = await searchParams;
+  const [favorites, all] = await Promise.all([getFavoriteSlugs(), getProducts()]);
+  const current = categories.find((c) => c.toLowerCase() === categorie) ?? null;
+  const sort = sorts.find((s) => s.id === tri)?.id ?? "";
+
+  let products = current ? all.filter((p) => p.category === current) : all;
+  if (sort) {
+    // Les articles sur devis passent à la fin, quel que soit l'ordre.
+    const price = (c: number | null) => (c === null ? Infinity : sort === "prix" ? c : -c);
+    products = [...products].sort((a, b) => price(a.priceCents) - price(b.priceCents));
+  }
+
+  const href = (cat: Category | null, s = sort) => {
+    const q = new URLSearchParams({ ...(cat ? { categorie: cat.toLowerCase() } : {}), ...(s ? { tri: s } : {}) }).toString();
+    return `/boutique${q ? `?${q}` : ""}`;
+  };
+  const count = (cat: Category | null) => (cat ? all.filter((p) => p.category === cat).length : all.length);
+  const pill =
+    "inline-flex items-center gap-1.5 rounded-full border px-4 py-1.5 text-sm transition-colors aria-[current=page]:border-fg aria-[current=page]:bg-fg aria-[current=page]:text-bg";
 
   return (
     <>
-      <section className="grid-bg relative overflow-hidden pb-20 pt-20 text-center sm:pt-28">
+      <section className="grid-bg relative overflow-hidden pb-14 pt-16 text-center sm:pt-24">
         <div className="pointer-events-none absolute inset-x-0 top-0 mx-auto h-80 max-w-3xl rounded-full bg-fg/[0.05] blur-[140px]" />
         <Container className="relative animate-rise">
           <Eyebrow>Boutique</Eyebrow>
           <h1 className="mt-6 text-5xl font-medium tracking-tight sm:text-6xl">Imprimé à la commande.</h1>
-          <p className="mx-auto mt-4 max-w-md text-[15px] text-muted">
-            Chaque article est imprimé pour vous. Couleur et finitions au choix.
-          </p>
-          <nav aria-label="Catégories" className="mt-8 flex flex-wrap justify-center gap-2">
-            {order.map((cat) => (
-              <a
-                key={cat}
-                href={`#${cat.toLowerCase()}`}
-                className="rounded-lg border border-line-strong bg-panel-2 px-3.5 py-1.5 text-sm transition-colors hover:border-accent hover:text-white"
-              >
-                {cat === "Pratique" ? "Pièces de rechange" : cat}
-              </a>
-            ))}
-          </nav>
+          <p className="mx-auto mt-4 max-w-md text-[15px] text-muted">Chaque article est imprimé pour vous, dans la couleur de votre choix.</p>
         </Container>
       </section>
 
-      <section className="theme-light pb-28 pt-8">
-        <Container>
-          {order.map((cat) => {
-            const items = products.filter((p) => p.category === cat);
-            if (!items.length) return null;
-            return (
-              <div key={cat} id={cat.toLowerCase()} className="pt-16">
-                <h2 data-reveal className="mb-6 font-mono text-[11px] uppercase tracking-wider text-accent">
-                  {cat === "Pratique" ? "Pièces de rechange" : cat}
-                </h2>
-                <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
-                  {items.map((p, i) => (
-                    <ProductCard key={p.slug} product={p} index={i} favorite={favorites.has(p.slug)} showFavorite={authEnabled} />
-                  ))}
-                </div>
-              </div>
-            );
-          })}
+      <section className="theme-light pb-28">
+        {/* Filtres collés en haut pendant le défilement. */}
+        <div className="sticky top-16 z-30 border-b border-line bg-bg/85 backdrop-blur-xl">
+          <Container className="flex flex-wrap items-center justify-between gap-3 py-3">
+            <nav aria-label="Catégories" className="-mx-1 flex gap-2 overflow-x-auto px-1 py-0.5">
+              {[null, ...categories].map((cat) => (
+                <Link
+                  key={cat ?? "tout"}
+                  href={href(cat)}
+                  aria-current={cat === current ? "page" : undefined}
+                  className={`${pill} shrink-0 border-line-strong bg-panel-2 hover:border-fg`}
+                >
+                  {cat ? categoryLabel(cat) : "Tout"}
+                  <span className="font-mono text-[11px] opacity-60">{count(cat)}</span>
+                </Link>
+              ))}
+            </nav>
+            <nav aria-label="Trier" className="flex items-center gap-1 whitespace-nowrap text-sm">
+              <span className="mr-1 text-muted">Trier :</span>
+              {sorts.map((s) => (
+                <Link
+                  key={s.id || "selection"}
+                  href={href(current, s.id)}
+                  title={s.title}
+                  aria-current={s.id === sort ? "page" : undefined}
+                  className="rounded-md px-2 py-1 text-muted hover:text-fg aria-[current=page]:font-medium aria-[current=page]:text-fg"
+                >
+                  {s.label}
+                </Link>
+              ))}
+            </nav>
+          </Container>
+        </div>
+
+        <Container className="pt-10">
+          {products.length ? (
+            <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
+              {products.map((p, i) => (
+                <ProductCard key={p.slug} product={p} index={i} favorite={favorites.has(p.slug)} showFavorite={authEnabled} />
+              ))}
+            </div>
+          ) : (
+            <p className="py-20 text-center text-muted">Aucun article dans cette catégorie pour l&apos;instant.</p>
+          )}
+          <p className="mt-12 text-center text-sm text-muted">
+            Vous ne trouvez pas votre pièce ?{" "}
+            <Link href="/demande?type=sur-mesure" className="font-medium text-accent underline-offset-4 hover:underline">
+              On la fabrique sur mesure
+            </Link>
+            .
+          </p>
         </Container>
       </section>
       <FinalCta />

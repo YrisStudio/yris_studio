@@ -24,10 +24,22 @@ export function ProductCard({
     <div data-reveal style={stagger(index % 3)}>
       <Spotlight className="flex h-full flex-col p-4">
         <div className="relative">
-          <CategoryGlyph
-            category={product.category}
-            className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.02]"
-          />
+          <Link href={`/boutique/${product.slug}`} aria-label={product.name} className="block overflow-hidden rounded-lg">
+            {product.photos[0] ? (
+              // eslint-disable-next-line @next/next/no-img-element -- photo hébergée sur Supabase Storage
+              <img
+                src={product.photos[0]}
+                alt=""
+                loading="lazy"
+                className="aspect-[4/3] w-full object-cover transition-transform duration-500 group-hover:scale-[1.03]"
+              />
+            ) : (
+              <CategoryGlyph
+                category={product.category}
+                className="aspect-[4/3] w-full transition-transform duration-500 group-hover:scale-[1.02]"
+              />
+            )}
+          </Link>
           {showFavorite && (
             <div className="absolute right-3 top-3">
               <FavoriteButton slug={product.slug} name={product.name} initial={favorite} />
@@ -37,15 +49,19 @@ export function ProductCard({
         <Mono className="mt-5">
           {product.category} · {product.material}
         </Mono>
-        <h3 className="mt-1 text-lg font-medium tracking-tight">{product.name}</h3>
+        <h3 className="mt-1 text-lg font-medium tracking-tight">
+          <Link href={`/boutique/${product.slug}`} className="hover:underline hover:underline-offset-4">
+            {product.name}
+          </Link>
+        </h3>
         <p className="mt-2 flex-1 text-sm text-muted">{product.text}</p>
         <div className="relative mt-5 flex items-center justify-between">
           <span className={`font-mono text-sm ${onQuote ? "text-muted" : "text-fg"}`}>{formatPrice(product.priceCents)}</span>
           <Link
-            href={onQuote ? `/demande?type=sur-mesure&article=${product.slug}` : `/demande?type=commande&article=${product.slug}`}
+            href={onQuote ? `/demande?type=sur-mesure&article=${product.slug}` : `/boutique/${product.slug}`}
             className="rounded-lg border border-line-strong bg-panel-2 px-3.5 py-1.5 text-sm transition-colors hover:border-accent hover:bg-accent hover:text-on-accent"
           >
-            {onQuote ? "Demander un devis" : "Commander"}
+            {onQuote ? "Demander un devis" : "Choisir"}
           </Link>
         </div>
       </Spotlight>

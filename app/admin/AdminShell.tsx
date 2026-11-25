@@ -19,6 +19,7 @@ import {
   Users,
   Printer,
   Settings,
+  Store,
   LogOut,
   Mail,
   Menu,
@@ -45,6 +46,7 @@ const allGroups: Group[] = [
     items: [
       { href: "/admin/commandes", label: "Commandes", icon: Inbox, keywords: "devis kanban" },
       { href: "/admin/clients", label: "Clients", icon: Users, keywords: "clients pros fiches étiquettes notes" },
+      { href: "/admin/produits", label: "Produits", icon: Store, keywords: "boutique articles photos prix couleurs catalogue" },
     ],
   },
   {

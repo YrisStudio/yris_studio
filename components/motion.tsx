@@ -7,6 +7,7 @@ const reducedMotion = () => window.matchMedia("(prefers-reduced-motion: reduce)"
 
 // Observe tous les éléments [data-reveal] et leur ajoute data-visible quand ils entrent à l'écran.
 // Tant que ce composant n'a pas tourné, rien n'est masqué (voir .reveal-ready dans globals.css).
+// Les éléments ajoutés plus tard (filtre de la boutique, tri…) sont repérés aussi, sinon ils resteraient invisibles.
 export function RevealObserver() {
   const pathname = usePathname();
 
@@ -26,8 +27,23 @@ export function RevealObserver() {
       },
       { rootMargin: "0px 0px -10% 0px", threshold: 0.1 },
     );
-    document.querySelectorAll("[data-reveal]:not([data-visible])").forEach((el) => io.observe(el));
-    return () => io.disconnect();
+    const watch = (root: ParentNode) => root.querySelectorAll("[data-reveal]:not([data-visible])").forEach((el) => io.observe(el));
+    watch(document);
+
+    const mo = new MutationObserver((mutations) => {
+      for (const m of mutations) {
+        m.addedNodes.forEach((n) => {
+          if (!(n instanceof Element)) return;
+          if (n.matches("[data-reveal]:not([data-visible])")) io.observe(n);
+          watch(n);
+        });
+      }
+    });
+    mo.observe(document.body, { childList: true, subtree: true });
+    return () => {
+      io.disconnect();
+      mo.disconnect();
+    };
   }, [pathname]);
 
   return null;

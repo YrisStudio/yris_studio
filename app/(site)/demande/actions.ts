@@ -1,7 +1,8 @@
 "use server";
 
 import { emailEnabled, escapeHtml, notifyOwner, sendRequestConfirmation } from "@/lib/email";
-import { MAX_FILES_BYTES, formatPrice, orderRef, products, requestTypes, type RequestType } from "@/lib/site";
+import { getProducts } from "@/lib/products";
+import { MAX_FILES_BYTES, formatPrice, orderRef, requestTypes, type RequestType } from "@/lib/site";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
 
 export type RequestState = {
@@ -28,7 +29,7 @@ export async function sendRequest(_prev: RequestState, formData: FormData): Prom
   const material = get("material");
   const quantity = Math.min(Math.max(parseInt(get("quantity")) || 1, 1), 1000);
   const details = get("details");
-  const product = products.find((p) => p.slug === get("article"));
+  const product = (await getProducts()).find((p) => p.slug === get("article") && p.priceCents !== null);
   const files = formData.getAll("files").filter((f): f is File => f instanceof File && f.size > 0);
   const delivery = get("delivery") === "retrait" ? "retrait" : "livraison";
   const address = delivery === "livraison" ? get("address").slice(0, 200) : "";

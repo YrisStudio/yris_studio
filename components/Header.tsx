@@ -3,9 +3,24 @@
 import { useEffect, useState } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
-import { Menu, UserRound, X } from "lucide-react";
+import { Menu, ShoppingBag, UserRound, X } from "lucide-react";
+import { cartCount, useCart } from "@/lib/cart";
 import { createClient } from "@/lib/supabase/client";
 import { nav } from "@/lib/site";
+
+// Icône panier avec le nombre d'articles (rien tant que le panier est vide).
+function CartLink({ className = "" }: { className?: string }) {
+  const count = cartCount(useCart());
+  if (!count) return null;
+  return (
+    <Link href="/panier" aria-label={`Panier, ${count} article${count > 1 ? "s" : ""}`} className={`relative p-2 text-fg/80 transition-colors hover:text-white ${className}`}>
+      <ShoppingBag size={18} aria-hidden />
+      <span className="absolute -right-0.5 -top-0.5 grid min-w-[18px] place-items-center rounded-full bg-accent px-1 font-mono text-[10.5px] font-semibold leading-[18px] text-on-accent">
+        {count}
+      </span>
+    </Link>
+  );
+}
 
 export default function Header() {
   const pathname = usePathname();
@@ -39,6 +54,7 @@ export default function Header() {
         </nav>
 
         <div className="hidden items-center gap-2 justify-self-end md:flex">
+          <CartLink />
           {loggedIn !== null && (
             <Link
               href={account.href}
@@ -59,6 +75,8 @@ export default function Header() {
           </div>
         </div>
 
+        <div className="flex items-center md:hidden">
+          <CartLink />
         <button
           type="button"
           onClick={() => setOpen((o) => !o)}
@@ -69,6 +87,7 @@ export default function Header() {
         >
           {open ? <X size={20} /> : <Menu size={20} />}
         </button>
+        </div>
       </div>
 
       {open && (

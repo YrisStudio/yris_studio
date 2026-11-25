@@ -2,7 +2,8 @@ import type { Metadata } from "next";
 import { redirect } from "next/navigation";
 import { Container, Eyebrow } from "@/components/ui";
 import RequestForm from "./RequestForm";
-import { products, requestTypes, site, type RequestType } from "@/lib/site";
+import { getProducts } from "@/lib/products";
+import { requestTypes, site, type RequestType } from "@/lib/site";
 import { authEnabled, getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -17,6 +18,7 @@ export default async function DemandePage({
 }) {
   const { type, article } = await searchParams;
   const initialType = (requestTypes.find((t) => t.id === type)?.id ?? "sur-mesure") as RequestType;
+  const products = await getProducts();
   const product = products.find((p) => p.slug === article);
 
   const here = `/demande?type=${initialType}${product ? `&article=${product.slug}` : ""}`;
@@ -49,6 +51,7 @@ export default async function DemandePage({
             key={here}
             initialType={initialType}
             initialArticle={product?.slug}
+            orderable={products.filter((p) => p.priceCents !== null).map((p) => ({ slug: p.slug, name: p.name, priceCents: p.priceCents }))}
             initialDetails={initialDetails}
             user={formUser}
             loginHref={loginHref}

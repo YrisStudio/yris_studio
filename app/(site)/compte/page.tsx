@@ -8,7 +8,8 @@ import { ProductCard, stagger } from "@/components/sections";
 import { Container, Mono, PrimaryLink, TextLink } from "@/components/ui";
 import { getFavoriteSlugs } from "@/lib/favorites";
 import { isAdmin } from "@/lib/admin";
-import { formatPrice, orderRef, products, requestTypes } from "@/lib/site";
+import { getProducts } from "@/lib/products";
+import { formatPrice, orderRef, requestTypes } from "@/lib/site";
 import { createClient, getUser } from "@/lib/supabase/server";
 
 export const metadata: Metadata = {
@@ -89,7 +90,7 @@ export default async function ComptePage() {
   ]);
   const admin = await isAdmin();
   const orders = (data ?? []) as Order[];
-  const favorites = products.filter((p) => favoriteSlugs.has(p.slug));
+  const favorites = (await getProducts()).filter((p) => favoriteSlugs.has(p.slug));
   const inProgress = orders.filter((o) => o.status !== "terminée" && o.status !== "annulée").length;
 
   const fullName = String(user.user_metadata?.full_name ?? "").trim();

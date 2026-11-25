@@ -4,10 +4,10 @@ import { startTransition, useActionState, useState } from "react";
 import { CheckCircle2, LoaderCircle, Paperclip } from "lucide-react";
 import { sendRequest, type RequestState } from "./actions";
 import Link from "next/link";
-import { MAX_FILES_BYTES, formatPrice, materials, products, requestTypes, type RequestType } from "@/lib/site";
+import { MAX_FILES_BYTES, formatPrice, materials, requestTypes, type RequestType } from "@/lib/site";
 
-// Seuls les articles à prix fixe se commandent directement.
-const orderable = products.filter((p) => p.priceCents !== null);
+// Seuls les articles à prix fixe se commandent directement (fournis par la page).
+type Orderable = { slug: string; name: string; priceCents: number | null };
 
 export type FormUser = { name: string; email: string } | null;
 
@@ -34,6 +34,7 @@ const placeholders: Record<RequestType, string> = {
 export default function RequestForm({
   initialType,
   initialArticle,
+  orderable,
   initialDetails,
   user,
   loginHref,
@@ -41,6 +42,7 @@ export default function RequestForm({
 }: {
   initialType: RequestType;
   initialArticle?: string;
+  orderable: Orderable[];
   initialDetails?: string;
   user: FormUser;
   loginHref: string;
@@ -138,7 +140,7 @@ export default function RequestForm({
         <div className="grid gap-4 sm:grid-cols-[1fr_120px]">
           <div>
             <label htmlFor="article" className={label}>Article</label>
-            <select id="article" name="article" defaultValue={orderable.some((p) => p.slug === initialArticle) ? initialArticle : orderable[0].slug} className={field}>
+            <select id="article" name="article" defaultValue={orderable.some((p) => p.slug === initialArticle) ? initialArticle : orderable[0]?.slug} className={field}>
               {orderable.map((p) => (
                 <option key={p.slug} value={p.slug}>
                   {p.name} · {formatPrice(p.priceCents)}

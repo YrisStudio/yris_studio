@@ -3,13 +3,11 @@ import { CarPartCard, QuoteDashboard } from "@/components/Art";
 import { CountUp, Spotlight, TiltOnScroll } from "@/components/motion";
 import { Faq, FinalCta, HowItWorks, Manifesto, Materials, MaterialsMarquee, ProductCard, stagger } from "@/components/sections";
 import { Container, Eyebrow, Mono, PrimaryLink, SecondaryLink, SectionTitle, TextLink } from "@/components/ui";
-import { materials, products } from "@/lib/site";
+import { getProducts } from "@/lib/products";
+import { materials } from "@/lib/site";
 
 const title = "Vos idées. Imprimées.".split(" ");
 
-// Mini boutique de l'accueil : un article par univers, avec un prix fixe.
-const featuredSlugs = ["support-telephone-grille", "organiseur-tiroir", "support-casque"];
-const featured = featuredSlugs.map((slug) => products.find((p) => p.slug === slug)).filter((p) => p !== undefined);
 
 const starts = [
   { icon: FileUp, title: "Sur mesure", text: "Un fichier STL, une photo ou des mesures. On s'occupe du reste.", href: "/demande?type=sur-mesure", cta: "Envoyer" },
@@ -17,7 +15,11 @@ const starts = [
   { icon: ShoppingBag, title: "Boutique", text: "Des articles prêts à imprimer, en quelques clics.", href: "/boutique", cta: "Parcourir" },
 ];
 
-export default function Home() {
+export default async function Home() {
+  // Mini boutique de l'accueil : les articles « mis en avant » dans le gestionnaire (3 au plus).
+  const products = await getProducts();
+  const picked = products.filter((p) => p.featured);
+  const featured = (picked.length ? picked : products.filter((p) => p.priceCents !== null)).slice(0, 3);
   return (
     <>
       {/* Hero, noir */}
