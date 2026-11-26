@@ -1,10 +1,11 @@
 import Link from "next/link";
+import NewsletterForm from "@/components/NewsletterForm";
 import { nav, site } from "@/lib/site";
 
 export default function Footer() {
   return (
     <footer className="border-t border-line text-sm text-muted">
-      <div className="mx-auto grid w-full max-w-[1120px] gap-10 px-5 py-14 sm:grid-cols-[1.5fr_1fr_1fr] sm:px-6">
+      <div className="mx-auto grid w-full max-w-[1120px] gap-10 px-5 py-14 sm:grid-cols-2 lg:grid-cols-[1.3fr_1fr_1fr_1.4fr] sm:px-6">
         <div>
           <Link href="/" className="inline-flex items-center gap-3 text-fg" aria-label="Yris, accueil">
             {/* eslint-disable-next-line @next/next/no-img-element */}
@@ -25,10 +26,11 @@ export default function Footer() {
           <a href={`mailto:${site.email}`} className="hover:text-fg">{site.email}</a>
           <Link href="/signaler" className="hover:text-fg">Signaler un problème</Link>
         </div>
+        <NewsletterForm />
       </div>
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-2 border-t border-line px-5 py-6 text-xs sm:flex-row sm:justify-between sm:px-6">
         <p>© {new Date().getFullYear()} {site.name}</p>
-        <p>Paiement après validation de la commande. Les pièces sur mesure font l&apos;objet d&apos;un devis gratuit.</p>
+        <p>Paiement sécurisé par carte. Les pièces sur mesure font l&apos;objet d&apos;un devis gratuit.</p>
       </div>
     </footer>
   );

@@ -227,3 +227,7 @@ returns boolean language sql stable security definer set search_path to '' as $$
       or not exists (select 1 from auth.mfa_factors f where f.user_id = (select auth.uid()) and f.status = 'verified')
     );
 $$;
+
+-- ── Phase 3 : newsletter (voir aussi la migration « newsletter » appliquée dans Supabase) ──
+-- Table newsletter_subscribers (email, token, source, unsubscribed_at), fonctions
+-- newsletter_subscribe(email, source) et newsletter_unsubscribe(token) appelables par les visiteurs.

@@ -1,7 +1,10 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/activity";
 import { isAdmin } from "@/lib/admin";
+import { sendWinBack } from "@/lib/email";
+import { getComm } from "@/lib/settings";
 import { clientKey } from "@/lib/clients";
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -84,4 +87,25 @@ export async function deleteClientNote(id: string, rawEmail: string): Promise<Cl
   if (error) return fail("Impossible de supprimer la note.");
   refresh(rawEmail.trim().toLowerCase());
   return ok();
+}
+
+// Relance d'un client inactif : email avec un code de réduction personnel (10 %, 60 jours, une fois).
+export async function winBackClient(rawEmail: string): Promise<{ status: "success" | "error"; message: string }> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const email = rawEmail.trim().toLowerCase();
+  const supabase = await createClient();
+  const { data: last } = await supabase.from("orders").select("customer_name").ilike("customer_email", email).order("created_at", { ascending: false }).limit(1).maybeSingle();
+  const comm = await getComm();
+  const code = `RETOUR-${crypto.randomUUID().slice(0, 5).toUpperCase()}`;
+  const expires = new Date(Date.UTC(new Date().getUTCFullYear(), new Date().getUTCMonth(), new Date().getUTCDate() + 60)).toISOString().slice(0, 10);
+  const { error } = await supabase.from("promo_codes").insert({ code, kind: "pourcent", value: 10, max_uses: 1, expires_on: expires, note: `Relance ${email}` });
+  if (error) return { status: "error", message: "Impossible de créer le code." };
+  const sent = await sendWinBack({ to: email, name: last?.customer_name ?? null, message: comm.winBack, code });
+  if (!sent) return { status: "error", message: "Email non envoyé (Resend)." };
+  const user = await getUser();
+  await supabase.from("client_notes").insert({ client_email: email, body: `Relance envoyée avec le code ${code} (−10 %, jusqu'au ${expires}).`, author_email: user?.email ?? null });
+  await logActivity(`a relancé un client (code ${code})`, email, `/admin/clients/${clientKey(email)}`);
+  refresh(email);
+  revalidatePath("/admin/clients");
+  return { status: "success", message: `Relance envoyée (code ${code})` };
 }

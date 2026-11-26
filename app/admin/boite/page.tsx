@@ -6,6 +6,8 @@ import { getTeam, requireAdmin } from "@/lib/admin";
 import { emailEnabled } from "@/lib/email";
 import { buildThreads, inboxStatusMeta, type InboxStatus } from "@/lib/inbox";
 import { getInboxMessages, syncInbox } from "@/lib/inbox-server";
+import { getAllOrders } from "@/lib/orders";
+import { getComm } from "@/lib/settings";
 
 export const metadata = { title: "Boîte de réception" };
 
@@ -31,12 +33,15 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
 
   // À chaque ouverture : on va chercher chez Resend les mails arrivés depuis la dernière fois.
   const sync = await syncInbox();
-  const [messages, team] = await Promise.all([getInboxMessages(), getTeam()]);
+  const [messages, team, comm, orders] = await Promise.all([getInboxMessages(), getTeam(), getComm(), getAllOrders()]);
   const threads = buildThreads(messages);
   const open = threads.filter((t) => t.status !== "traité");
   const shown = filter === "tous" ? threads : filter === "traites" ? threads.filter((t) => t.status === "traité") : open;
   const current = c ? threads.find((t) => t.key === c) : undefined;
   const currentMessages = current ? messages.filter((m) => m.thread_key === current.key).sort((a, b) => a.received_at.localeCompare(b.received_at)) : [];
+  // Formulaire du site (« Commande boutique #A1B2C3D4 ») : lien direct vers la commande.
+  const ref = current?.subject.match(/#([0-9A-F]{8})/i)?.[1]?.toLowerCase();
+  const linkedOrder = ref ? orders.find((o) => o.id.startsWith(ref)) : undefined;
   const href = (key?: string, fil = filter) => `/admin/boite?${new URLSearchParams({ ...(fil !== "ouverts" ? { f: fil } : {}), ...(key ? { c: key } : {}) })}`;
 
   return (
@@ -115,7 +120,7 @@ export default async function InboxPage({ searchParams }: { searchParams: Promis
               <Link href={href()} className="mb-3 inline-flex items-center gap-1 text-[12.5px] text-muted hover:text-fg lg:hidden">
                 <ArrowLeft size={13} aria-hidden /> Conversations
               </Link>
-              <ThreadView thread={current} messages={currentMessages} team={team.map((m) => m.name)} />
+              <ThreadView thread={current} messages={currentMessages} team={team.map((m) => m.name)} replies={comm.replies} orderId={linkedOrder?.id ?? null} />
             </>
           ) : (
             <div className="grid h-full min-h-60 place-items-center rounded-lg border border-dashed border-line text-[13px] text-muted">

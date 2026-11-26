@@ -6,6 +6,7 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
   Boxes,
+  Newspaper,
   Percent,
   Repeat,
   FolderKanban,
@@ -73,6 +74,7 @@ const allGroups: Group[] = [
     items: [
       { href: "/admin/boite", label: "Boîte de réception", icon: Mail, keywords: "mails emails messages contact répondre" },
       { href: "/admin/sav", label: "SAV", icon: LifeBuoy, keywords: "signalements réclamations retours réimpression" },
+      { href: "/admin/newsletter", label: "Newsletter", icon: Newspaper, keywords: "abonnés emails envoi" },
     ],
   },
   {

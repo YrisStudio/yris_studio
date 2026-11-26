@@ -5,6 +5,7 @@ import { getMe, isManager } from "@/lib/admin";
 import { roles } from "@/lib/team";
 import { companyFields, sanitizeCompany } from "@/lib/company";
 import { quoteMaterials, sanitizeTariffs } from "@/lib/pricing";
+import { sanitizeComm } from "@/lib/settings";
 import { createClient } from "@/lib/supabase/server";
 
 export type SettingsState = { status: "idle" | "success" | "error"; message?: string };
@@ -129,4 +130,34 @@ export async function cancelInvite(email: string): Promise<SettingsState> {
   if (error) return { status: "error", message: "Impossible d'annuler l'invitation." };
   revalidatePath("/admin/parametres");
   return { status: "success", message: "Invitation annulée." };
+}
+
+// Emails et communication : textes des emails de statut, réponses toutes faites, avis Google, relance.
+export async function saveComm(_prev: SettingsState, formData: FormData): Promise<SettingsState> {
+  if (!(await isManager())) return { status: "error", message: "Accès refusé." };
+  let replies: unknown = [];
+  try {
+    replies = JSON.parse(String(formData.get("replies") ?? "[]"));
+  } catch {
+    return { status: "error", message: "Réponses toutes faites illisibles." };
+  }
+  const templates: Record<string, { title: string; message: string }> = {};
+  for (const s of ["devis envoyé", "en impression", "terminée", "annulée"]) {
+    const title = String(formData.get(`t_${s}_title`) ?? "").trim();
+    const message = String(formData.get(`t_${s}_message`) ?? "").trim();
+    if (title && message) templates[s] = { title, message };
+  }
+  const value = sanitizeComm({
+    templates,
+    replies,
+    reviewUrl: String(formData.get("reviewUrl") ?? ""),
+    winBack: String(formData.get("winBack") ?? ""),
+  });
+  if (String(formData.get("reviewUrl") ?? "").trim() && !value.reviewUrl) return { status: "error", message: "Le lien d'avis doit commencer par https://" };
+  const supabase = await createClient();
+  const { error } = await supabase.from("admin_settings").upsert({ key: "communication", value, updated_at: new Date().toISOString() });
+  if (error) return { status: "error", message: "Impossible d'enregistrer." };
+  revalidatePath("/admin/parametres");
+  revalidatePath("/admin/boite");
+  return { status: "success", message: "Enregistré" };
 }

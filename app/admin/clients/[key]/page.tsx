@@ -1,6 +1,6 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Briefcase, Mail, MapPin, Phone, ShoppingBag, StickyNote, UserRound } from "lucide-react";
+import { ArrowLeft, Briefcase, History, Mail, MapPin, Phone, ShoppingBag, StickyNote, UserRound } from "lucide-react";
 import ClientForm from "./ClientForm";
 import ClientNotes from "./ClientNotes";
 import TagEditor from "./TagEditor";
@@ -10,6 +10,7 @@ import { getAccounts, getClientNotes, getClientRecord } from "@/lib/clients-serv
 import { getAllOrders } from "@/lib/orders";
 import { kindLabel, statusMeta } from "@/lib/orders-meta";
 import { formatPrice, orderRef, type OrderStatus } from "@/lib/site";
+import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Client" };
 
@@ -35,6 +36,18 @@ export default async function ClientPage({ params }: { params: Promise<{ key: st
   const client = buildClients(orders, record ? [record] : [], accounts.filter((a) => a.email === email)).find((c) => c.email === email);
   if (!client) notFound();
 
+  // Emails échangés et signalements SAV de ce client.
+  const supabase = await createClient();
+  const [{ data: mails }, { data: reports }] = await Promise.all([
+    supabase.from("inbox_messages").select("id, direction, subject, thread_key, received_at").ilike("contact_email", email).order("received_at", { ascending: false }).limit(50),
+    supabase.from("reports").select("id, category, message, status, created_at").ilike("email", email).order("created_at", { ascending: false }).limit(30),
+  ]);
+  const timeline = [
+    ...orders.map((o) => ({ id: `o-${o.id}`, at: o.created_at, kind: "Commande", dot: "bg-accent", text: `${orderRef(o.id)} · ${o.product_name ?? "Demande sur mesure"} · ${statusMeta[o.status as OrderStatus]?.label ?? o.status}`, href: `/admin/commandes/${o.id}` })),
+    ...(mails ?? []).map((m) => ({ id: `m-${m.id}`, at: m.received_at, kind: m.direction === "in" ? "Email reçu" : "Email envoyé", dot: "bg-sky-400", text: m.subject || "(sans objet)", href: `/admin/boite?c=${encodeURIComponent(m.thread_key)}` })),
+    ...(reports ?? []).map((r) => ({ id: `r-${r.id}`, at: r.created_at, kind: "SAV", dot: "bg-red-400", text: `${r.category} · ${String(r.message).slice(0, 90)}`, href: "/admin/sav" })),
+    ...notes.map((n) => ({ id: `n-${n.id}`, at: n.created_at, kind: "Note", dot: "bg-amber-400", text: n.body.slice(0, 120), href: null as string | null })),
+  ].sort((a, b) => b.at.localeCompare(a.at));
   const done = orders.filter((o) => o.status === "terminée");
   const average = done.length ? Math.round(client.spentCents / done.length) : 0;
   const last = orders[0];
@@ -106,6 +119,31 @@ export default async function ClientPage({ params }: { params: Promise<{ key: st
 
           <Section title="Notes internes" icon={StickyNote}>
             <ClientNotes email={client.email} notes={notes} />
+          </Section>
+
+          {/* Historique unifié : commandes, emails, SAV, notes, du plus récent au plus ancien. */}
+          <Section title="Historique complet" icon={History}>
+            {timeline.length === 0 ? (
+              <p className="text-[13px] text-muted">Rien pour l&apos;instant.</p>
+            ) : (
+              <ol className="space-y-2.5 border-l border-line pl-4">
+                {timeline.map((t) => (
+                  <li key={t.id} className="relative">
+                    <span className={`absolute -left-[21px] top-1.5 size-2 rounded-full ${t.dot}`} aria-hidden />
+                    <p className="text-[11.5px] text-muted">
+                      <span className="font-medium text-fg/80">{t.kind}</span> · {dateFmt.format(new Date(t.at))}
+                    </p>
+                    {t.href ? (
+                      <Link href={t.href} className="text-[13px] hover:text-accent">
+                        {t.text}
+                      </Link>
+                    ) : (
+                      <p className="text-[13px]">{t.text}</p>
+                    )}
+                  </li>
+                ))}
+              </ol>
+            )}
           </Section>
         </div>
 

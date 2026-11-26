@@ -6,7 +6,7 @@ import { logActivity } from "@/lib/activity";
 import { sendStatusUpdate } from "@/lib/email";
 import { realisationUrl } from "@/lib/storage";
 import { computeQuote, sanitizeInputs, type QuoteInputs } from "@/lib/pricing";
-import { getTariffs } from "@/lib/settings";
+import { getComm, getTariffs } from "@/lib/settings";
 import { formatPrice, orderRef, orderStatuses, type OrderStatus } from "@/lib/site";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { statusMeta } from "@/lib/orders-meta";
@@ -61,6 +61,7 @@ export async function setOrderStatus(id: string, status: string): Promise<Action
   }
 
   const cents = data.final_cents ?? data.estimated_cents;
+  const comm = await getComm();
   const mailed = await sendStatusUpdate({
     orderId: id,
     to: data.customer_email,
@@ -69,6 +70,8 @@ export async function setOrderStatus(id: string, status: string): Promise<Action
     priceLabel: cents !== null ? formatPrice(cents) : null,
     hasAccount: Boolean(data.user_id),
     photos: ((data.photos ?? []) as string[]).map(realisationUrl),
+    copy: comm.templates[status] ?? null,
+    reviewUrl: comm.reviewUrl || null,
   });
   if (mailed) await logEvent(supabase, id, "email", `Client prévenu : « ${to} »`);
 

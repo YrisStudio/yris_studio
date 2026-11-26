@@ -196,7 +196,8 @@ export function sendRequestConfirmation(p: {
   );
 }
 
-const statusCopy: Record<string, { title: string; message: string }> = {
+// Textes par défaut des emails de statut (modifiables dans Paramètres → Emails).
+export const statusCopy: Record<string, { title: string; message: string }> = {
   "devis envoyé": {
     title: "Votre devis est prêt",
     message: "voici le prix de votre commande. Répondez simplement à cet email pour la valider, et on lance l'impression.",
@@ -225,14 +226,21 @@ export function sendStatusUpdate(p: {
   hasAccount: boolean;
   // Photos de la pièce finie (liens publics), montrées dans l'email « prête ».
   photos?: string[];
+  // Texte personnalisé (Paramètres) et lien vers les avis Google, ajouté à l'email « prête ».
+  copy?: { title: string; message: string } | null;
+  reviewUrl?: string | null;
 }) {
-  const copy = statusCopy[p.status];
+  const copy = p.copy?.title && p.copy.message ? p.copy : statusCopy[p.status];
   if (!copy || !p.to || !emailEnabled()) return Promise.resolve(false);
   const ref = orderRef(p.orderId);
   const link = accountLink(p.hasAccount);
   const status = p.status.charAt(0).toUpperCase() + p.status.slice(1);
   const price = escapeHtml(p.priceLabel ?? "à confirmer");
-  const intro = `Bonjour ${firstName(p.name)}, ${copy.message}`;
+  const review =
+    p.status === "terminée" && p.reviewUrl
+      ? `<br><br>Contents du résultat ? Un petit avis nous aide énormément : <a href="${escapeHtml(p.reviewUrl)}" style="color:#16a34a">laisser un avis Google</a>. Merci !`
+      : "";
+  const intro = `Bonjour ${firstName(p.name)}, ${escapeHtml(copy.message)}${review}`;
   const rows: [string, string][] = [
     ["Référence", `<b>${ref}</b>`],
     ["Statut", escapeHtml(status)],
@@ -308,4 +316,55 @@ L'équipe Yris Studio`,
     },
     `parrainage-${p.code}`,
   );
+}
+
+// Relance d'un client qui n'a pas commandé depuis longtemps (texte écrit dans le gestionnaire).
+export function sendWinBack(p: { to: string; name: string | null; message: string; code: string | null }) {
+  if (!emailEnabled()) return Promise.resolve(false);
+  const intro = `Bonjour ${firstName(p.name)}, ${escapeHtml(p.message).replace(/\n/g, "<br>")}`;
+  const rows: [string, string][] = p.code ? [["Votre code", `<b style="font-family:monospace;font-size:16px">${escapeHtml(p.code)}</b>`]] : [];
+  return send({
+    to: [p.to],
+    reply_to: ownerEmail(),
+    subject: "Des nouvelles de Yris Studio",
+    html: clientEmail({ preview: "Des nouveautés à l'atelier.", title: "Ça fait un moment !", intro, rows, link: `${site.url}/boutique`, linkLabel: "Voir la boutique" }),
+    text: `${plain(intro)}${p.code ? `\n\nVotre code : ${p.code}` : ""}\n\n${site.url}/boutique\n\nL'équipe Yris Studio`,
+  });
+}
+
+// Newsletter : un email par abonné (lien de désinscription personnel), par lots de 100 via l'API batch.
+export async function sendNewsletter(p: { subject: string; body: string; recipients: { email: string; token: string }[] }) {
+  const apiKey = process.env.RESEND_API_KEY;
+  if (!apiKey) return 0;
+  const html = (token: string) => {
+    const unsub = `${site.url}/newsletter/desabonnement?t=${token}`;
+    return clientEmail({
+      preview: p.subject,
+      title: escapeHtml(p.subject),
+      intro: escapeHtml(p.body).replace(/\n/g, "<br>"),
+      rows: [],
+      link: `${site.url}/boutique`,
+      linkLabel: "Voir la boutique",
+    }).replace("</body>", `<p style="text-align:center;font-family:Arial,sans-serif;font-size:11px;color:#9a9a94"><a href="${unsub}" style="color:#9a9a94">Se désinscrire</a></p></body>`);
+  };
+  let sent = 0;
+  for (let i = 0; i < p.recipients.length; i += 100) {
+    const batch = p.recipients.slice(i, i + 100).map((r) => ({
+      from: FROM(),
+      to: [r.email],
+      reply_to: ownerEmail(),
+      subject: p.subject,
+      html: html(r.token),
+      text: `${p.body}\n\n${site.url}/boutique\n\nSe désinscrire : ${site.url}/newsletter/desabonnement?t=${r.token}`,
+      headers: { "List-Unsubscribe": `<${site.url}/newsletter/desabonnement?t=${r.token}>` },
+    }));
+    const res = await fetch("https://api.resend.com/emails/batch", {
+      method: "POST",
+      headers: { Authorization: `Bearer ${apiKey}`, "Content-Type": "application/json" },
+      body: JSON.stringify(batch),
+    });
+    if (res.ok) sent += batch.length;
+    else console.error("Newsletter : échec Resend", res.status, await res.text());
+  }
+  return sent;
 }

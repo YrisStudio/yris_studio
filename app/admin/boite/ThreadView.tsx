@@ -59,7 +59,19 @@ function Message({ m }: { m: InboxMessage }) {
   );
 }
 
-export default function ThreadView({ thread, messages, team }: { thread: InboxThread; messages: InboxMessage[]; team: string[] }) {
+export default function ThreadView({
+  thread,
+  messages,
+  team,
+  replies = [],
+  orderId = null,
+}: {
+  thread: InboxThread;
+  messages: InboxMessage[];
+  team: string[];
+  replies?: { title: string; body: string }[];
+  orderId?: string | null;
+}) {
   const [pending, start] = useTransition();
   const [text, setText] = useState("");
   const [message, setMessage] = useState<{ ok: boolean; text: string } | null>(null);
@@ -76,6 +88,11 @@ export default function ThreadView({ thread, messages, team }: { thread: InboxTh
       {/* En-tête : client, statut, personne en charge */}
       <div className="rounded-lg border border-line bg-panel p-3.5">
         <h2 className="text-[15px] font-medium">{thread.subject}</h2>
+        {orderId && (
+          <Link href={`/admin/commandes/${orderId}`} className="mt-1 inline-flex items-center gap-1 rounded bg-accent/15 px-1.5 py-0.5 text-[12px] text-accent hover:brightness-110">
+            Formulaire du site · voir la commande →
+          </Link>
+        )}
         <div className="mt-1 flex flex-wrap items-center gap-x-3 gap-y-2 text-[12.5px]">
           <Link href={`/admin/clients/${clientKey(thread.contactEmail)}`} className="inline-flex items-center gap-1 text-muted hover:text-fg">
             <UserRound size={13} aria-hidden /> {thread.contactName ? `${thread.contactName} · ` : ""}
@@ -116,6 +133,25 @@ export default function ThreadView({ thread, messages, team }: { thread: InboxTh
         <label htmlFor="reply" className="mb-1.5 block text-[12px] text-muted">
           Répondre à {thread.contactEmail} (au nom de contact@yris-studio.com)
         </label>
+        {replies.length > 0 && (
+          <select
+            value=""
+            onChange={(e) => {
+              const r = replies[Number(e.target.value)];
+              const first = thread.contactName?.trim().split(/\s+/)[0] ?? "";
+              if (r) setText(r.body.replace(/\{prénom\}/g, first).replace(/Bonjour ,/, "Bonjour,"));
+            }}
+            aria-label="Réponse toute faite"
+            className="mb-2 w-full rounded-md border border-line bg-bg/60 px-2 py-1.5 text-[12.5px] text-muted outline-none focus:border-accent sm:w-auto"
+          >
+            <option value="">Réponse toute faite…</option>
+            {replies.map((r, i) => (
+              <option key={i} value={i}>
+                {r.title}
+              </option>
+            ))}
+          </select>
+        )}
         <textarea
           id="reply"
           value={text}
