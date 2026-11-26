@@ -16,4 +16,6 @@ export type Todo = {
   done: boolean;
   done_at: string | null;
   created_at: string;
+  assigned_to: string | null;
+  due_date: string | null;
 };

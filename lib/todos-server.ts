@@ -6,7 +6,7 @@ export async function getTodos(): Promise<Todo[]> {
   const supabase = await createClient();
   const { data, error } = await supabase
     .from("admin_todos")
-    .select("id, category, title, details, priority, done, done_at, created_at")
+    .select("id, category, title, details, priority, done, done_at, created_at, assigned_to, due_date")
     .order("done")
     .order("priority")
     .order("created_at");

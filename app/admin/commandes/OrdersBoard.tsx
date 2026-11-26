@@ -28,7 +28,8 @@ const title = (o: AdminOrder) => o.product_name ?? o.details?.split("\n")[0]?.sl
 type View = "kanban" | "liste";
 const kinds = ["tous", "commande", "sur-mesure", "projet"] as const;
 
-export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
+export default function OrdersBoard({ orders, people, me }: { orders: AdminOrder[]; people: string[]; me: string | null }) {
+  const [who, setWho] = useState<string>("");
   const [view, setView] = useState<View>("kanban");
   const [query, setQuery] = useState("");
   const [kind, setKind] = useState<(typeof kinds)[number]>("tous");
@@ -58,6 +59,7 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
     const q = query.trim().toLowerCase();
     return optimistic.filter((o) => {
       if (kind !== "tous" && o.kind !== kind) return false;
+      if (who && (who === "personne" ? o.assigned_to : o.assigned_to !== who)) return false;
       if (!q) return true;
       return [orderRef(o.id), o.customer_name, o.customer_email, o.customer_company, o.product_name, o.details, o.city, o.quote_number]
         .filter(Boolean)
@@ -65,7 +67,7 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
         .toLowerCase()
         .includes(q);
     });
-  }, [optimistic, query, kind]);
+  }, [optimistic, query, kind, who]);
 
   const columns: OrderStatus[] = [...boardStatuses, ...(showCancelled ? (["annulée"] as const) : [])];
   // Urgentes d'abord, puis la date promise la plus proche, puis la plus ancienne.
@@ -104,6 +106,20 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
             </button>
           ))}
         </div>
+        <select
+          value={who}
+          onChange={(e) => setWho(e.target.value)}
+          aria-label="Qui s'en occupe"
+          className="h-8 rounded-md border border-line bg-panel px-2 text-[12.5px] text-fg outline-none focus:border-accent"
+        >
+          <option value="">Tout le monde</option>
+          {people.map((p) => (
+            <option key={p} value={p}>
+              {p === me ? `Mes commandes (${p})` : p}
+            </option>
+          ))}
+          <option value="personne">Personne</option>
+        </select>
         <label className="flex cursor-pointer items-center gap-1.5 text-[12.5px] text-muted">
           <input type="checkbox" checked={showCancelled} onChange={(e) => setShowCancelled(e.target.checked)} className="accent-[var(--color-accent)]" />
           Annulées
@@ -192,8 +208,13 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
                           <span>{orderRef(o.id)}</span>
                           <span>·</span>
                           <span>{kindLabel[o.kind] ?? o.kind}</span>
+                          {o.assigned_to && (
+                            <span className="ml-auto grid size-4 place-items-center rounded-full bg-sky-400/20 font-sans text-[9.5px] font-semibold text-sky-300" title={`Pour ${o.assigned_to}`}>
+                              {o.assigned_to[0]?.toUpperCase()}
+                            </span>
+                          )}
                           {o.priority === "urgente" && (
-                            <span className="ml-auto flex items-center gap-0.5 rounded bg-red-400/15 px-1 text-red-300">
+                            <span className={`${o.assigned_to ? "" : "ml-auto "}flex items-center gap-0.5 rounded bg-red-400/15 px-1 text-red-300`}>
                               <Zap size={10} aria-hidden /> Urgent
                             </span>
                           )}
@@ -269,7 +290,10 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
                     <span className="text-[11.5px] text-muted">{kindLabel[o.kind] ?? o.kind}</span>
                   </td>
                   <td className="px-3 py-2">
-                    <span className="block truncate">{o.customer_name ?? "—"}</span>
+                    <span className="block truncate">
+                      {o.customer_name ?? "—"}
+                      {o.assigned_to && <span className="ml-1.5 text-[11px] text-sky-300">→ {o.assigned_to}</span>}
+                    </span>
                     <span className="block truncate text-[11.5px] text-muted">{o.customer_email}</span>
                   </td>
                   <td className="px-3 py-2">

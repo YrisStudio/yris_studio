@@ -35,6 +35,7 @@ export type AdminOrder = {
   invoice_date: string | null;
   payment: "en attente" | "payée" | "abandonnée" | null;
   paid_at: string | null;
+  assigned_to: string | null;
 };
 
 export type OrderEvent = {

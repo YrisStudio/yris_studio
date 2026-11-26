@@ -1,16 +1,19 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, Download, FileText, Mail, MapPin, Package, Paperclip, Phone, Printer, Store, Truck } from "lucide-react";
+import { ArrowLeft, Building2, Download, FileText, Mail, MapPin, Package, Phone, Printer, Store, Truck } from "lucide-react";
 import AddToQueue from "./AddToQueue";
+import AssignSelect from "./AssignSelect";
+import OrderFiles from "./OrderFiles";
 import MetaForm from "./MetaForm";
 import NoteForm from "./NoteForm";
 import QuoteBuilder from "./QuoteBuilder";
 import StatusBar from "./StatusBar";
-import { requireAdmin } from "@/lib/admin";
+import { getAssignees, requireAdmin } from "@/lib/admin";
 import { clientKey } from "@/lib/clients";
 import { getClientRecord } from "@/lib/clients-server";
 import { formatHours } from "@/lib/atelier";
 import { getOrderJobs } from "@/lib/atelier-server";
+import { getOrderFiles } from "@/lib/order-files";
 import { getOrder, getOrderEvents } from "@/lib/orders";
 import { eventLabel, kindLabel, statusMeta } from "@/lib/orders-meta";
 import { getTariffs } from "@/lib/settings";
@@ -48,11 +51,13 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
   const order = await getOrder(id);
   if (!order) notFound();
   const email = order.customer_email?.trim().toLowerCase() ?? null;
-  const [events, tariffs, jobs, client] = await Promise.all([
+  const [events, tariffs, jobs, client, people, files] = await Promise.all([
     getOrderEvents(id),
     getTariffs(),
     getOrderJobs(id),
     email ? getClientRecord(email) : Promise.resolve(null),
+    getAssignees(),
+    getOrderFiles(order.id, order.files),
   ]);
   const proDiscount = client?.is_pro ? Number(client.pro_discount_pct) : 0;
   const meta = statusMeta[order.status as OrderStatus];
@@ -85,6 +90,9 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
         <p className="font-mono text-xl">{amount !== null ? formatPrice(amount) : <span className="text-muted">À chiffrer</span>}</p>
       </div>
 
+      <div className="mb-3">
+        <AssignSelect id={order.id} value={order.assigned_to} people={people} />
+      </div>
       <StatusBar id={order.id} status={order.status} />
 
       <div className="mt-4 grid gap-4 lg:grid-cols-[minmax(0,1fr)_320px]">
@@ -101,18 +109,7 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             {order.details && (
               <p className="mt-3 whitespace-pre-line rounded-md border border-line bg-bg/50 p-3 text-[13px] leading-relaxed">{order.details}</p>
             )}
-            {order.files.length > 0 && (
-              <ul className="mt-3 flex flex-wrap gap-1.5">
-                {order.files.map((f) => (
-                  <li key={f} className="flex items-center gap-1.5 rounded border border-line px-2 py-1 font-mono text-[11.5px] text-muted">
-                    <Paperclip size={11} aria-hidden /> {f}
-                  </li>
-                ))}
-              </ul>
-            )}
-            {order.files.length > 0 && (
-              <p className="mt-2 text-[11.5px] text-muted">Les fichiers ont été envoyés en pièce jointe sur l&apos;email de notification.</p>
-            )}
+            {files.length > 0 && <OrderFiles files={files} />}
           </Section>
 
           {/* Devis */}

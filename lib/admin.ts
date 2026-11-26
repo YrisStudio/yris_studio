@@ -41,6 +41,12 @@ export async function getTeam(): Promise<Member[]> {
   return (data ?? []).map((m) => ({ userId: m.user_id, name: m.name || m.email?.split("@")[0] || "?", email: m.email ?? "", role: m.role as Role }));
 }
 
+// Les prénoms à qui on peut confier une tâche ou une commande : l'équipe, plus les invités pas encore inscrits.
+export async function getAssignees(): Promise<string[]> {
+  const [team, invites] = await Promise.all([getTeam(), getInvites()]);
+  return [...new Set([...team.map((m) => m.name), ...invites.map((i) => i.name).filter((n): n is string => Boolean(n))])];
+}
+
 export async function getInvites(): Promise<Invite[]> {
   const supabase = await createClient();
   const { data } = await supabase.from("admin_invites").select("email, name, role, created_at").order("created_at");

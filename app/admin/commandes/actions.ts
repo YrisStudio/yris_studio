@@ -1,7 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
-import { isAdmin } from "@/lib/admin";
+import { getAssignees, isAdmin } from "@/lib/admin";
 import { sendStatusUpdate } from "@/lib/email";
 import { computeQuote, sanitizeInputs, type QuoteInputs } from "@/lib/pricing";
 import { getTariffs } from "@/lib/settings";
@@ -142,4 +142,21 @@ export async function saveQuote(id: string, raw: Partial<QuoteInputs>, send: boo
   const res = await setOrderStatus(id, "devis envoyé");
   refresh(id);
   return res.status === "error" ? res : { status: "success", message: res.message?.includes("prévenu") ? "Devis envoyé au client" : "Devis prêt (email non envoyé)" };
+}
+
+// Confie la commande à un membre de l'équipe (ou à personne) et le note dans l'historique.
+export async function assignOrder(id: string, who: string): Promise<ActionState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const assignee = who ? ((await getAssignees()).includes(who) ? who : undefined) : null;
+  if (assignee === undefined) return { status: "error", message: "Personne inconnue dans l'équipe." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").update({ assigned_to: assignee }).eq("id", id);
+  if (error) {
+    console.error("Assignation :", error.message);
+    return { status: "error", message: "Impossible d'assigner la commande." };
+  }
+  await logEvent(supabase, id, "note", assignee ? `Confiée à ${assignee}` : "Plus assignée");
+  refresh(id);
+  revalidatePath("/admin/todo");
+  return { status: "success" };
 }

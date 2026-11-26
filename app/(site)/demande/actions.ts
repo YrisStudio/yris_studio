@@ -1,6 +1,7 @@
 "use server";
 
 import { emailEnabled, escapeHtml, notifyOwner, sendRequestConfirmation } from "@/lib/email";
+import { storageNames, storeOrderFiles } from "@/lib/order-files";
 import { getProducts } from "@/lib/products";
 import { MAX_FILES_BYTES, formatPrice, orderRef, requestTypes, type RequestType } from "@/lib/site";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
@@ -58,6 +59,7 @@ export async function sendRequest(_prev: RequestState, formData: FormData): Prom
   const estimatedCents = type === "commande" && product?.priceCents ? product.priceCents * quantity : null;
 
   const orderId = crypto.randomUUID();
+  const fileNames = storageNames(files);
   const typeLabel = requestTypes.find((t) => t.id === type)!.title;
   const where = delivery === "retrait" ? "Retrait en main propre" : `Livraison : ${address}, ${postalCode} ${city}`;
 
@@ -81,11 +83,13 @@ export async function sendRequest(_prev: RequestState, formData: FormData): Prom
       quantity,
       material: material || null,
       details: details || null,
-      files: files.map((f) => f.name),
+      files: fileNames,
       estimated_cents: estimatedCents,
     });
     if (error) console.error("Demande : enregistrement impossible", error.message);
     saved = !error;
+    // Les fichiers sont gardés pour l'aperçu 3D du gestionnaire (en plus de l'email).
+    if (saved) await storeOrderFiles(orderId, files, fileNames);
   }
 
   // 2. On vous envoie la demande par email, avec les fichiers joints.
