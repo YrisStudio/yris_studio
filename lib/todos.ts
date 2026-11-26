@@ -1,5 +1,6 @@
 // Constantes et types partagés (aussi utilisés côté navigateur : pas d'import serveur ici).
-export const todoCategories = ["Réseaux sociaux", "Site web", "Sur le terrain", "Produits et atelier", "Business", "Autre"] as const;
+// Les phases de la refonte (reprises de Notion), plus « Autre » pour le reste.
+export const todoCategories = ["1 · Socle", "2 · Argent", "3 · Communication", "4 · Réseaux", "5 · Bonus", "Autre"] as const;
 
 export const priorities = [
   { value: 1, label: "Urgent" },

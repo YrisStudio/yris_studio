@@ -2,7 +2,7 @@
 
 import { useActionState, useMemo, useOptimistic, useRef, useState, useTransition } from "react";
 import Link from "next/link";
-import { CalendarClock, Check, ChevronRight, LoaderCircle, Package, Plus, Trash2 } from "lucide-react";
+import { CalendarClock, Check, ChevronRight, LoaderCircle, Package, Plus, Trash2, UserPlus } from "lucide-react";
 import { addTodo, deleteTodo, setTodoAssignee, setTodoDone, setTodoDue, setTodoPriority, type TodoState } from "./actions";
 import { statusMeta } from "@/lib/orders-meta";
 import type { OrderStatus } from "@/lib/site";
@@ -292,23 +292,27 @@ export default function TodoView({ todos, assignees, me, orders }: { todos: Todo
                           </span>
                         )}
                       </button>
-                      {/* Qui s'en occupe */}
-                      <label className="relative shrink-0" title={t.assigned_to ? `Confiée à ${t.assigned_to}` : "Personne"}>
-                        <span className="sr-only">Qui s&apos;en occupe</span>
-                        <span
-                          className={`grid size-[22px] place-items-center rounded-full text-[10.5px] font-semibold ${
-                            t.assigned_to ? color(t.assigned_to) : "border border-dashed border-line-strong text-muted"
-                          }`}
-                          aria-hidden
-                        >
-                          {t.assigned_to ? t.assigned_to[0]?.toUpperCase() : "?"}
-                        </span>
+                      {/* Qui s'en occupe : bouton à droite, on choisit dans l'équipe */}
+                      <label
+                        className={`relative flex shrink-0 cursor-pointer items-center gap-1 rounded-full py-0.5 pl-0.5 pr-2 text-[11.5px] transition ${
+                          t.assigned_to ? color(t.assigned_to) : "border border-dashed border-line-strong text-muted hover:border-fg hover:text-fg"
+                        }`}
+                      >
+                        {t.assigned_to ? (
+                          <span className="grid size-[18px] place-items-center rounded-full bg-bg/40 text-[10px] font-semibold" aria-hidden>
+                            {t.assigned_to[0]?.toUpperCase()}
+                          </span>
+                        ) : (
+                          <UserPlus size={12} className="ml-1" aria-hidden />
+                        )}
+                        <span className="max-w-[80px] truncate">{t.assigned_to ?? "Assigner"}</span>
                         <select
                           value={t.assigned_to ?? ""}
                           onChange={(e) => {
                             const v = e.target.value || null;
                             change({ id: t.id, assigned_to: v }, () => setTodoAssignee(t.id, v ?? ""));
                           }}
+                          aria-label={`Qui s'occupe de « ${t.title} »`}
                           className="absolute inset-0 cursor-pointer opacity-0"
                         >
                           <option value="">Personne</option>
@@ -398,7 +402,7 @@ function AddTodoForm({
   return (
     <form ref={ref} action={action} className="grid grid-cols-2 gap-2 rounded-lg border border-line bg-panel p-3 sm:grid-cols-4">
       <input name="title" required maxLength={200} placeholder="Nouvelle tâche…" aria-label="Tâche" className={`${field} col-span-2 sm:col-span-4`} autoFocus />
-      <select name="category" defaultValue={defaultCategory ?? "Business"} aria-label="Catégorie" className={field}>
+      <select name="category" defaultValue={defaultCategory ?? "Autre"} aria-label="Catégorie" className={field}>
         {todoCategories.map((c) => (
           <option key={c}>{c}</option>
         ))}
