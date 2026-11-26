@@ -1,6 +1,7 @@
-import { BarChart3, Building2, Calculator, Mail, Users } from "lucide-react";
+import { BarChart3, Building2, Calculator, Mail, ShieldCheck, Users } from "lucide-react";
 import PageHeader from "../PageHeader";
 import CompanyForm from "./CompanyForm";
+import MfaSetup from "./MfaSetup";
 import ResetStats from "./ResetStats";
 import TariffsForm from "./TariffsForm";
 import TeamManager from "./TeamManager";
@@ -33,6 +34,16 @@ export default async function AdminSettings() {
         </header>
         <div className="p-4">
           <TeamManager team={team} invites={invites} meId={me?.userId ?? ""} />
+        </div>
+      </section>
+      <section id="securite" className="rounded-lg border border-line bg-panel">
+        <header className="flex items-center gap-2 border-b border-line px-4 py-2.5">
+          <ShieldCheck size={14} className="text-muted" aria-hidden />
+          <h2 className="text-[13px] font-medium">Double authentification</h2>
+          <span className="ml-auto text-[11.5px] text-muted">Pour votre compte uniquement</span>
+        </header>
+        <div className="p-4">
+          <MfaSetup />
         </div>
       </section>
       <section className="rounded-lg border border-line bg-panel">

@@ -36,6 +36,15 @@ export type AdminOrder = {
   payment: "en attente" | "payée" | "abandonnée" | null;
   paid_at: string | null;
   assigned_to: string | null;
+  photos: string[];
+  items: { slug: string; name: string; color: string; qty: number; unit_cents: number }[] | null;
+  promo_code: string | null;
+  discount_cents: number | null;
+  refunded_cents: number;
+  carrier: string | null;
+  tracking_number: string | null;
+  shipped_at: string | null;
+  stripe_session: string | null;
 };
 
 export type OrderEvent = {

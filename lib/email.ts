@@ -120,7 +120,10 @@ const accountLink = (hasAccount: boolean) => `${site.url}${hasAccount ? "/compte
 
 // Mise en page commune des emails clients : tableaux et styles en ligne, pour Gmail, Outlook et Apple Mail.
 // `rows` et `intro` sont déjà en HTML sûr (les saisies du client sont échappées avant).
-function clientEmail(p: { preview: string; title: string; intro: string; rows: [string, string][]; link: string; linkLabel: string }) {
+function clientEmail(p: { preview: string; title: string; intro: string; rows: [string, string][]; link: string; linkLabel: string; images?: string[] }) {
+  // Photos (pièce finie) : deux par ligne, liens publics.
+  const images = (p.images ?? []).slice(0, 4).map((src) => `<td style="padding:4px" width="50%"><img src="${src}" width="240" alt="" style="display:block;width:100%;height:auto;border-radius:8px;border:0"></td>`);
+  const gallery = images.length ? `<tr><td style="padding:8px 28px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0"><tr>${images.slice(0, 2).join("")}</tr>${images.length > 2 ? `<tr>${images.slice(2).join("")}</tr>` : ""}</table></td></tr>` : "";
   const rows = p.rows
     .map(
       ([k, v]) =>
@@ -135,6 +138,7 @@ function clientEmail(p: { preview: string; title: string; intro: string; rows: [
 <tr><td style="padding:28px 32px 0"><img src="${site.url}/brand/yris-logo-horizontal-light-transparent.png" width="120" alt="Yris Studio" style="display:block;border:0;height:auto"></td></tr>
 <tr><td style="padding:24px 32px 8px"><h1 style="margin:0 0 12px;font-size:22px;line-height:1.3;color:#151513">${p.title}</h1>
 <p style="margin:0;font-size:15px;line-height:1.6;color:#33332f">${p.intro}</p></td></tr>
+${gallery}
 <tr><td style="padding:8px 32px"><table role="presentation" width="100%" cellpadding="0" cellspacing="0" style="border-top:1px solid #ecece7;border-bottom:1px solid #ecece7">${rows}</table></td></tr>
 <tr><td style="padding:20px 32px 8px"><a href="${p.link}" style="display:inline-block;background:#16a34a;color:#ffffff;text-decoration:none;font-size:14px;font-weight:600;padding:11px 20px;border-radius:8px">${p.linkLabel}</a></td></tr>
 <tr><td style="padding:16px 32px 28px;font-size:13px;line-height:1.6;color:#6b6b66">Une question ? Répondez simplement à cet email.<br>L'équipe Yris Studio</td></tr>
@@ -219,6 +223,8 @@ export function sendStatusUpdate(p: {
   status: string;
   priceLabel: string | null;
   hasAccount: boolean;
+  // Photos de la pièce finie (liens publics), montrées dans l'email « prête ».
+  photos?: string[];
 }) {
   const copy = statusCopy[p.status];
   if (!copy || !p.to || !emailEnabled()) return Promise.resolve(false);
@@ -237,9 +243,69 @@ export function sendStatusUpdate(p: {
       to: [p.to],
       reply_to: ownerEmail(),
       subject: `${copy.title} · ${ref}`,
-      html: clientEmail({ preview: `${copy.title} (${ref}).`, title: copy.title, intro, rows, link, linkLabel: p.hasAccount ? "Voir ma commande" : "Voir le site" }),
+      html: clientEmail({
+        preview: `${copy.title} (${ref}).`,
+        title: copy.title,
+        intro,
+        rows,
+        link,
+        linkLabel: p.hasAccount ? "Voir ma commande" : "Voir le site",
+        images: p.status === "terminée" ? p.photos : undefined,
+      }),
       text: `${plain(intro)}\n\nRéférence : ${ref}\nStatut : ${status}${p.status === "annulée" ? "" : `\nPrix : ${p.priceLabel ?? "à confirmer"}`}\n\n${link}\n\nUne question ? Répondez simplement à cet email.\nL'équipe Yris Studio`,
     },
     `statut-${p.orderId}-${p.status}`,
+  );
+}
+
+// Colis parti : numéro de suivi et lien du transporteur.
+export function sendShipped(p: { orderId: string; to: string | null; name: string | null; carrier: string; tracking: string; trackingUrl: string | null; hasAccount: boolean }) {
+  if (!p.to || !emailEnabled()) return Promise.resolve(false);
+  const ref = orderRef(p.orderId);
+  const intro = `Bonjour ${firstName(p.name)}, votre colis est parti ! Vous pouvez suivre son trajet avec le numéro ci-dessous.`;
+  const rows: [string, string][] = [
+    ["Référence", `<b>${ref}</b>`],
+    ["Transporteur", escapeHtml(p.carrier)],
+    ["Suivi", `<b>${escapeHtml(p.tracking)}</b>`],
+  ];
+  const link = p.trackingUrl ?? accountLink(p.hasAccount);
+  return send(
+    {
+      to: [p.to],
+      reply_to: ownerEmail(),
+      subject: `Votre colis est parti · ${ref}`,
+      html: clientEmail({ preview: `Colis ${ref} expédié.`, title: "Votre colis est parti", intro, rows, link, linkLabel: p.trackingUrl ? "Suivre mon colis" : "Voir le site" }),
+      text: `${plain(intro)}
+
+Référence : ${ref}
+Transporteur : ${p.carrier}
+Suivi : ${p.tracking}
+${p.trackingUrl ?? ""}
+
+L'équipe Yris Studio`,
+    },
+    `expedie-${p.orderId}-${p.tracking}`,
+  );
+}
+
+// Parrainage : le filleul a payé sa première commande, le parrain reçoit son bon.
+export function sendReferralReward(p: { to: string; code: string; amountLabel: string }) {
+  if (!emailEnabled()) return Promise.resolve(false);
+  const intro = `Bonjour, une personne a passé commande avec votre code de parrainage. Merci ! Voici votre bon de réduction de <b>${escapeHtml(p.amountLabel)}</b> sur votre prochaine commande.`;
+  const rows: [string, string][] = [["Votre code", `<b style="font-family:monospace;font-size:16px">${escapeHtml(p.code)}</b>`]];
+  return send(
+    {
+      to: [p.to],
+      reply_to: ownerEmail(),
+      subject: `Merci pour le parrainage : ${p.amountLabel} offerts`,
+      html: clientEmail({ preview: `Votre bon de ${p.amountLabel}.`, title: "Merci pour le parrainage", intro, rows, link: `${site.url}/boutique`, linkLabel: "Voir la boutique" }),
+      text: `${plain(intro)}
+
+Votre code : ${p.code}
+${site.url}/boutique
+
+L'équipe Yris Studio`,
+    },
+    `parrainage-${p.code}`,
   );
 }

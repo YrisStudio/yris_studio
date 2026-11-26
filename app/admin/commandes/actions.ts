@@ -2,10 +2,12 @@
 
 import { revalidatePath } from "next/cache";
 import { getAssignees, isAdmin } from "@/lib/admin";
+import { logActivity } from "@/lib/activity";
 import { sendStatusUpdate } from "@/lib/email";
+import { realisationUrl } from "@/lib/storage";
 import { computeQuote, sanitizeInputs, type QuoteInputs } from "@/lib/pricing";
 import { getTariffs } from "@/lib/settings";
-import { formatPrice, orderStatuses, type OrderStatus } from "@/lib/site";
+import { formatPrice, orderRef, orderStatuses, type OrderStatus } from "@/lib/site";
 import { createClient, getUser } from "@/lib/supabase/server";
 import { statusMeta } from "@/lib/orders-meta";
 
@@ -41,7 +43,7 @@ export async function setOrderStatus(id: string, status: string): Promise<Action
     .from("orders")
     .update({ status, updated_at: new Date().toISOString() })
     .eq("id", id)
-    .select("customer_email, customer_name, user_id, final_cents, estimated_cents")
+    .select("customer_email, customer_name, user_id, final_cents, estimated_cents, photos")
     .maybeSingle();
   if (error || !data) {
     console.error("Statut :", error?.message);
@@ -51,6 +53,12 @@ export async function setOrderStatus(id: string, status: string): Promise<Action
   const from = statusMeta[before.status as OrderStatus]?.label ?? before.status;
   const to = statusMeta[status as OrderStatus].label;
   await logEvent(supabase, id, "statut", `${from} → ${to}`);
+  await logActivity(`a passé la commande en « ${to} »`, orderRef(id), `/admin/commandes/${id}`);
+  // Commande terminée : la facture reçoit son numéro définitif (F-2026-0001).
+  if (status === "terminée") {
+    const { error: invError } = await supabase.rpc("issue_document", { p_order: id, p_kind: "facture" });
+    if (invError) console.error("Facture :", invError.message);
+  }
 
   const cents = data.final_cents ?? data.estimated_cents;
   const mailed = await sendStatusUpdate({
@@ -60,6 +68,7 @@ export async function setOrderStatus(id: string, status: string): Promise<Action
     status,
     priceLabel: cents !== null ? formatPrice(cents) : null,
     hasAccount: Boolean(data.user_id),
+    photos: ((data.photos ?? []) as string[]).map(realisationUrl),
   });
   if (mailed) await logEvent(supabase, id, "email", `Client prévenu : « ${to} »`);
 
@@ -139,6 +148,7 @@ export async function saveQuote(id: string, raw: Partial<QuoteInputs>, send: boo
   const { data: number, error: numError } = await supabase.rpc("issue_document", { p_order: id, p_kind: "devis" });
   if (numError) console.error("Numéro de devis :", numError.message);
   await logEvent(supabase, id, "devis", `Devis ${number ?? ""} envoyé : ${formatPrice(quote.totalCents)}`.replace("  ", " "));
+  await logActivity(`a envoyé le devis ${number ?? ""} (${formatPrice(quote.totalCents)})`, orderRef(id), `/admin/commandes/${id}`);
   const res = await setOrderStatus(id, "devis envoyé");
   refresh(id);
   return res.status === "error" ? res : { status: "success", message: res.message?.includes("prévenu") ? "Devis envoyé au client" : "Devis prêt (email non envoyé)" };
@@ -156,6 +166,7 @@ export async function assignOrder(id: string, who: string): Promise<ActionState>
     return { status: "error", message: "Impossible d'assigner la commande." };
   }
   await logEvent(supabase, id, "note", assignee ? `Confiée à ${assignee}` : "Plus assignée");
+  await logActivity(assignee ? `a confié la commande à ${assignee}` : "a retiré l'assignation de la commande", orderRef(id), `/admin/commandes/${id}`);
   refresh(id);
   revalidatePath("/admin/todo");
   return { status: "success" };

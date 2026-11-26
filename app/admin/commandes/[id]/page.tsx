@@ -1,9 +1,10 @@
 import Link from "next/link";
 import { notFound } from "next/navigation";
-import { ArrowLeft, Building2, Download, FileText, Mail, MapPin, Package, Phone, Printer, Store, Truck } from "lucide-react";
+import { ArrowLeft, Building2, Camera, CreditCard, Download, FileText, Mail, MapPin, Package, Phone, Printer, Store, Truck } from "lucide-react";
 import AddToQueue from "./AddToQueue";
 import AssignSelect from "./AssignSelect";
 import OrderFiles from "./OrderFiles";
+import { FinishedPhotos, InvoiceBox, RefundBox, ShippingBox } from "./OrderExtras";
 import MetaForm from "./MetaForm";
 import NoteForm from "./NoteForm";
 import QuoteBuilder from "./QuoteBuilder";
@@ -18,6 +19,7 @@ import { getOrder, getOrderEvents } from "@/lib/orders";
 import { eventLabel, kindLabel, statusMeta } from "@/lib/orders-meta";
 import { getTariffs } from "@/lib/settings";
 import { formatPrice, orderRef, type OrderStatus } from "@/lib/site";
+import { realisationUrl } from "@/lib/storage";
 
 export const metadata = { title: "Commande" };
 
@@ -170,6 +172,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <AddToQueue id={order.id} ready={Boolean(order.quote_inputs?.hours)} />
           </Section>
 
+          {/* Pièce finie */}
+          <Section title="Photos de la pièce finie" icon={Camera}>
+            <FinishedPhotos id={order.id} photos={order.photos.map((path) => ({ path, url: realisationUrl(path) }))} />
+          </Section>
+
           {/* Historique */}
           <Section title="Historique" icon={FileText}>
             <NoteForm id={order.id} />
@@ -207,6 +214,25 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
 
         {/* Colonne de droite */}
         <aside className="space-y-4">
+          <Section title="Facture" icon={FileText}>
+            <InvoiceBox id={order.id} number={order.invoice_number} date={order.invoice_date} canIssue={amount !== null} />
+          </Section>
+          {order.payment === "payée" && (
+            <Section title="Paiement" icon={CreditCard}>
+              <RefundBox id={order.id} paidCents={order.final_cents ?? order.estimated_cents ?? 0} refundedCents={order.refunded_cents ?? 0} />
+              {order.promo_code && (
+                <p className="mt-2 text-[12px] text-muted">
+                  Code promo <span className="font-mono text-fg">{order.promo_code}</span>
+                  {order.discount_cents ? ` · −${formatPrice(order.discount_cents)}` : ""}
+                </p>
+              )}
+            </Section>
+          )}
+          {order.delivery === "livraison" && (
+            <Section title="Expédition" icon={Truck}>
+              <ShippingBox id={order.id} carrier={order.carrier} tracking={order.tracking_number} shippedAt={order.shipped_at} />
+            </Section>
+          )}
           <Section title="Client" icon={Building2}>
             {email ? (
               <Link href={`/admin/clients/${clientKey(email)}`} className="text-[14px] font-medium hover:text-accent">

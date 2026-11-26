@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/activity";
 import { getAssignees, isAdmin } from "@/lib/admin";
 import { todoCategories } from "@/lib/todos";
 import { createClient } from "@/lib/supabase/server";
@@ -44,8 +45,14 @@ export async function addTodo(_prev: TodoState, formData: FormData): Promise<Tod
 export async function setTodoDone(id: string, done: boolean) {
   if (!(await isAdmin())) return;
   const supabase = await createClient();
-  const { error } = await supabase.from("admin_todos").update({ done, done_at: done ? new Date().toISOString() : null }).eq("id", id);
+  const { data, error } = await supabase
+    .from("admin_todos")
+    .update({ done, done_at: done ? new Date().toISOString() : null })
+    .eq("id", id)
+    .select("title")
+    .maybeSingle();
   if (error) console.error("To-do :", error.message);
+  if (done && data) await logActivity("a terminé la tâche", data.title, "/admin/todo");
   refresh();
 }
 
@@ -70,8 +77,9 @@ export async function setTodoAssignee(id: string, who: string) {
   const assignee = await validAssignee(who);
   if (assignee === undefined) return;
   const supabase = await createClient();
-  const { error } = await supabase.from("admin_todos").update({ assigned_to: assignee }).eq("id", id);
+  const { data, error } = await supabase.from("admin_todos").update({ assigned_to: assignee }).eq("id", id).select("title").maybeSingle();
   if (error) console.error("To-do :", error.message);
+  if (data) await logActivity(assignee ? `a confié la tâche à ${assignee}` : "a retiré l'assignation de la tâche", data.title, "/admin/todo");
   refresh();
 }
 

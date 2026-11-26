@@ -5,6 +5,10 @@ import Link from "next/link";
 import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
+  Boxes,
+  FolderKanban,
+  History,
+  Wallet,
   CalendarDays,
   ChevronsLeft,
   ChevronsRight,
@@ -39,7 +43,10 @@ type Group = { title: string; items: Item[] };
 const allGroups: Group[] = [
   {
     title: "Pilotage",
-    items: [{ href: "/admin", label: "Tableau de bord", icon: LayoutDashboard, keywords: "accueil chiffres" }],
+    items: [
+      { href: "/admin", label: "Tableau de bord", icon: LayoutDashboard, keywords: "accueil chiffres" },
+      { href: "/admin/finances", label: "Finances", icon: Wallet, keywords: "factures dépenses marge urssaf seuils trésorerie export comptable" },
+    ],
   },
   {
     title: "Ventes",
@@ -54,6 +61,7 @@ const allGroups: Group[] = [
     items: [
       { href: "/admin/atelier", label: "Impressions", icon: Printer, keywords: "atelier file planning imprimantes bambu ratés maintenance" },
       { href: "/admin/stock", label: "Stock", icon: Cylinder, keywords: "filament bobines consommables buses" },
+      { href: "/admin/modeles", label: "Modèles 3D", icon: Boxes, keywords: "stl 3mf bibliothèque fichiers modèles" },
     ],
   },
   {
@@ -67,7 +75,9 @@ const allGroups: Group[] = [
     title: "Organisation",
     items: [
       { href: "/admin/calendrier", label: "Calendrier", icon: CalendarDays, keywords: "planning dates livraisons agenda" },
-      { href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées" },
+      { href: "/admin/todo", label: "To-do", icon: ListTodo, keywords: "tâches idées qui fait quoi" },
+      { href: "/admin/projets", label: "Projets", icon: FolderKanban, keywords: "kanban chantiers salon partenariat" },
+      { href: "/admin/activite", label: "Journal", icon: History, keywords: "activité historique qui a fait quoi" },
       { href: "/admin/outils", label: "Outils", icon: Wrench, keywords: "calculateur prix qr code" },
     ],
   },

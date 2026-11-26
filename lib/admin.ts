@@ -1,4 +1,4 @@
-import { notFound } from "next/navigation";
+import { notFound, redirect } from "next/navigation";
 import { cache } from "react";
 import { createClient, getUser } from "@/lib/supabase/server";
 import type { Invite, Member, Role } from "@/lib/team";
@@ -12,9 +12,21 @@ export async function isAdmin() {
   return data === true;
 }
 
-// À appeler en tête de chaque page /admin : un non-admin obtient une simple page 404.
+// Double authentification activée mais code pas encore saisi pour cette session.
+export async function needsMfa() {
+  const user = await getUser();
+  if (!user) return false;
+  const supabase = await createClient();
+  const { data } = await supabase.auth.mfa.getAuthenticatorAssuranceLevel();
+  return data?.nextLevel === "aal2" && data.currentLevel !== "aal2";
+}
+
+// À appeler en tête de chaque page /admin : un non-admin obtient une simple page 404,
+// un membre avec la double authentification est envoyé vers la saisie de son code.
 export async function requireAdmin() {
-  if (!(await isAdmin())) notFound();
+  if (await isAdmin()) return;
+  if (await needsMfa()) redirect("/connexion/verification");
+  notFound();
 }
 
 // Membre de l'équipe connecté (prénom, rôle), ou null. Mis en cache le temps d'une requête.

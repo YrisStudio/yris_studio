@@ -1,6 +1,7 @@
 "use server";
 
 import { revalidatePath } from "next/cache";
+import { logActivity } from "@/lib/activity";
 import { isAdmin } from "@/lib/admin";
 import { PHOTO_BUCKET } from "@/lib/products";
 import { categories, type Category } from "@/lib/site";
@@ -62,6 +63,13 @@ export async function saveProduct(_prev: ProductState, formData: FormData): Prom
     position,
     active: formData.get("active") === "on",
     featured: formData.get("featured") === "on",
+    // Pièces déjà imprimées, prêtes à partir (expédiées sans délai de fabrication).
+    stock_qty: Math.min(Math.max(parseInt(get("stock_qty")) || 0, 0), 9999),
+    collections: formData
+      .getAll("collections")
+      .map((c) => String(c))
+      .filter((c) => /^[a-z0-9-]{2,60}$/.test(c))
+      .slice(0, 10),
     updated_at: new Date().toISOString(),
   };
 
@@ -75,6 +83,7 @@ export async function saveProduct(_prev: ProductState, formData: FormData): Prom
     return { status: "error", message: "Impossible d'enregistrer l'article." };
   }
   refresh(slug);
+  await logActivity(id ? "a modifié l'article" : "a créé l'article", name, `/admin/produits/${res.data.id}`);
   return { status: "success", message: id ? "Article enregistré." : "Article créé.", id: res.data.id };
 }
 
