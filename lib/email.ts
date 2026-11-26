@@ -164,12 +164,17 @@ export function sendRequestConfirmation(p: {
   hasAccount: boolean;
   // Commande de la boutique : le prix est déjà connu, on annonce le paiement plutôt qu'un devis.
   shop?: boolean;
+  // Commande déjà payée en ligne (Stripe).
+  paid?: boolean;
 }) {
   const ref = orderRef(p.orderId);
   const link = accountLink(p.hasAccount);
-  const intro = p.shop
-    ? `Bonjour ${firstName(p.name)}, merci pour votre commande ! On vous envoie très vite le lien de paiement, puis on lance l'impression.`
-    : `Bonjour ${firstName(p.name)}, on a bien reçu votre demande. On l'étudie et on revient vers vous très vite avec un prix, en général sous 24 à 48 h.`;
+  const intro = p.paid
+    ? `Bonjour ${firstName(p.name)}, merci pour votre commande ! Votre paiement est bien reçu : on lance l'impression et on vous prévient dès que c'est prêt.`
+    : p.shop
+      ? `Bonjour ${firstName(p.name)}, merci pour votre commande ! On vous envoie très vite le lien de paiement, puis on lance l'impression.`
+      : `Bonjour ${firstName(p.name)}, on a bien reçu votre demande. On l'étudie et on revient vers vous très vite avec un prix, en général sous 24 à 48 h.`;
+  const title = p.paid ? "Commande confirmée" : p.shop ? "Commande bien reçue" : "Demande bien reçue";
   const rows: [string, string][] = [
     ["Référence", `<b>${ref}</b>`],
     ["Type", escapeHtml(p.kindLabel)],
@@ -179,8 +184,8 @@ export function sendRequestConfirmation(p: {
     {
       to: [p.to],
       reply_to: ownerEmail(),
-      subject: `${p.shop ? "Commande reçue" : "Demande reçue"} · ${ref}`,
-      html: clientEmail({ preview: `On a bien reçu votre demande ${ref}.`, title: p.shop ? "Commande bien reçue" : "Demande bien reçue", intro, rows, link, linkLabel: p.hasAccount ? "Suivre ma demande" : "Voir le site" }),
+      subject: `${p.paid ? "Commande confirmée" : p.shop ? "Commande reçue" : "Demande reçue"} · ${ref}`,
+      html: clientEmail({ preview: p.paid ? `Paiement reçu pour la commande ${ref}.` : `On a bien reçu votre demande ${ref}.`, title, intro, rows, link, linkLabel: p.hasAccount ? "Suivre ma demande" : "Voir le site" }),
       text: `${plain(intro)}\n\nRéférence : ${ref}\n${plain(p.summary)}\n\n${link}\n\nUne question ? Répondez simplement à cet email.\nL'équipe Yris Studio`,
     },
     `demande-recue-${p.orderId}`,

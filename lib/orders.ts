@@ -33,6 +33,8 @@ export type AdminOrder = {
   quote_date: string | null;
   invoice_number: string | null;
   invoice_date: string | null;
+  payment: "en attente" | "payée" | "abandonnée" | null;
+  paid_at: string | null;
 };
 
 export type OrderEvent = {
@@ -47,7 +49,13 @@ export type OrderEvent = {
 // Toutes les commandes. La base ne les renvoie que si la personne connectée est admin.
 export async function getAllOrders() {
   const supabase = await createClient();
-  const { data, error } = await supabase.from("orders").select("*").order("created_at", { ascending: false }).limit(500);
+  const { data, error } = await supabase
+    .from("orders")
+    .select("*")
+    // Paniers partis payer sans jamais payer : pas des vraies commandes.
+    .or("payment.is.null,payment.eq.payée")
+    .order("created_at", { ascending: false })
+    .limit(500);
   if (error) console.error("Admin commandes :", error.message);
   return (data ?? []) as AdminOrder[];
 }

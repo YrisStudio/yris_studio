@@ -71,6 +71,11 @@ export default async function OrderPage({ params }: { params: Promise<{ id: stri
             <h1 className="text-xl font-semibold tracking-tight">{order.product_name ?? "Demande sur mesure"}</h1>
             <span className={`rounded px-1.5 py-0.5 text-[11.5px] ${meta?.pill ?? ""}`}>{meta?.label ?? order.status}</span>
             {order.priority === "urgente" && <span className="rounded bg-red-400/15 px-1.5 py-0.5 text-[11.5px] text-red-300">Urgent</span>}
+            {order.payment === "payée" && (
+              <span className="rounded bg-accent/15 px-1.5 py-0.5 text-[11.5px] text-accent" title={order.paid_at ? `Payée le ${dateTime.format(new Date(order.paid_at))}` : undefined}>
+                Payée en ligne
+              </span>
+            )}
           </div>
           <p className="mt-0.5 font-mono text-[12px] text-muted">
             {orderRef(order.id)} · {kindLabel[order.kind] ?? order.kind} · reçue le {dateTime.format(new Date(order.created_at))}

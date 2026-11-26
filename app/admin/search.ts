@@ -30,6 +30,7 @@ export async function searchAdmin(raw: string): Promise<SearchHit[]> {
           .map((c) => `${c}.ilike.${like}`)
           .join(","),
       )
+      .or("payment.is.null,payment.eq.payée")
       .order("created_at", { ascending: false })
       .limit(8),
     supabase.from("clients").select("email, name, company").or(`email.ilike.${like},name.ilike.${like},company.ilike.${like}`).limit(5),
@@ -46,6 +47,7 @@ export async function searchAdmin(raw: string): Promise<SearchHit[]> {
     const { data } = await supabase
       .from("orders")
       .select("id, customer_name, customer_email, customer_company, product_name, quote_number, invoice_number, status, created_at")
+      .or("payment.is.null,payment.eq.payée")
       .order("created_at", { ascending: false })
       .limit(500);
     byRef = (data ?? []).filter((o) => o.id.startsWith(ref)).slice(0, 3);

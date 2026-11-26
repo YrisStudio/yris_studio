@@ -84,6 +84,7 @@ export default async function ComptePage() {
       .select("id, kind, product_name, quantity, material, details, estimated_cents, final_cents, status, created_at")
       // Un admin peut lire toutes les commandes : ici on ne veut que les siennes.
       .eq("user_id", user.id)
+      .or("payment.is.null,payment.eq.payée")
       .order("created_at", { ascending: false })
       .limit(50),
     getFavoriteSlugs(),

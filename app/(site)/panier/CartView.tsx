@@ -2,7 +2,7 @@
 
 import { useActionState, useEffect, useState } from "react";
 import Link from "next/link";
-import { CheckCircle2, LoaderCircle, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
+import { CheckCircle2, LoaderCircle, Lock, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
 import { checkout, type CheckoutState } from "./actions";
 import { CategoryGlyph } from "@/components/Art";
 import { clearCart, MAX_QTY, setQty, useCart } from "@/lib/cart";
@@ -22,20 +22,26 @@ function Err({ msg }: { msg?: string }) {
 export default function CartView({
   catalog,
   shippingCents,
+  payOnline,
+  cancelled,
   user,
 }: {
   catalog: CatalogItem[];
   shippingCents: number;
+  payOnline: boolean;
+  cancelled: boolean;
   user: { name: string; email: string } | null;
 }) {
   const cart = useCart();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, { status: "idle" });
   const [delivery, setDelivery] = useState<"livraison" | "retrait">("livraison");
 
-  // Commande enregistrée : on vide le panier.
+  // Commande enregistrée : on vide le panier. Paiement en ligne : direction la page Stripe
+  // (le panier n'est vidé qu'une fois revenu sur /panier/merci, au cas où le client renonce).
   useEffect(() => {
     if (state.status === "success") clearCart();
-  }, [state.status]);
+    if (state.status === "redirect" && state.url) window.location.assign(state.url);
+  }, [state]);
 
   if (state.status === "success") {
     return (
@@ -73,6 +79,11 @@ export default function CartView({
 
   return (
     <form action={action} className="mt-10 grid gap-10 lg:grid-cols-[1.4fr_1fr]">
+      {cancelled && state.status === "idle" && (
+        <p role="status" className="rounded-lg border border-line-strong bg-panel-2 px-4 py-3 text-sm lg:col-span-2">
+          Paiement annulé : rien n&apos;a été débité. Votre panier est toujours là, vous pouvez réessayer quand vous voulez.
+        </p>
+      )}
       <input type="hidden" name="items" value={JSON.stringify(lines.map((l) => ({ slug: l.slug, color: l.color, qty: l.qty })))} />
       <input type="text" name="site_web" tabIndex={-1} autoComplete="off" className="hidden" aria-hidden />
 
@@ -222,11 +233,17 @@ export default function CartView({
           </dl>
           <button
             type="submit"
-            disabled={pending}
+            disabled={pending || state.status === "redirect"}
             className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
           >
-            {pending && <LoaderCircle size={15} className="animate-spin" aria-hidden />}
-            Commander
+            {(pending || state.status === "redirect") && <LoaderCircle size={15} className="animate-spin" aria-hidden />}
+            {payOnline ? (
+              <>
+                <Lock size={14} aria-hidden /> Payer {formatPrice(subtotal + shipping)}
+              </>
+            ) : (
+              "Commander"
+            )}
           </button>
           {state.message && (
             <p role="alert" className="mt-3 text-sm text-red-600">
@@ -234,7 +251,9 @@ export default function CartView({
             </p>
           )}
           <p className="mt-4 text-xs leading-relaxed text-muted">
-            Aucun paiement maintenant : on confirme votre commande par email et on vous envoie le lien de paiement avant de lancer l&apos;impression.
+            {payOnline
+              ? "Paiement sécurisé par carte bancaire, Apple Pay ou Google Pay. Vous recevez la confirmation par email, puis on lance l'impression."
+              : "Aucun paiement maintenant : on confirme votre commande par email et on vous envoie le lien de paiement avant de lancer l'impression."}
           </p>
         </div>
       </aside>

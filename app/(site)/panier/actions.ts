@@ -1,14 +1,17 @@
 "use server";
 
-import { emailEnabled, escapeHtml, notifyOwner, sendRequestConfirmation } from "@/lib/email";
+import { headers } from "next/headers";
 import { getProducts } from "@/lib/products";
-import { formatPrice, orderRef, SHOP_SHIPPING_CENTS } from "@/lib/site";
+import { sendShopOrderEmails, type ShopOrder } from "@/lib/shop-order";
+import { orderRef, SHOP_SHIPPING_CENTS, site } from "@/lib/site";
+import { stripe, stripeEnabled } from "@/lib/stripe";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
 
 export type CheckoutState = {
-  status: "idle" | "success" | "error";
+  status: "idle" | "success" | "redirect" | "error";
   message?: string;
   ref?: string;
+  url?: string;
   errors?: Partial<Record<"name" | "email" | "address" | "items", string>>;
 };
 
@@ -64,8 +67,8 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
 
   const user = await getUser();
   const orderId = crypto.randomUUID();
-  const supabase = await createClient();
-  const { error } = await supabase.from("orders").insert({
+  const ref = orderRef(orderId);
+  const order: ShopOrder = {
     id: orderId,
     user_id: user?.id ?? null,
     customer_name: name,
@@ -75,42 +78,58 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
     address: address || null,
     postal_code: postalCode || null,
     city: city || null,
+    details: `${summaryText}${note ? `\n\nNote du client : ${note}` : ""}`,
+    estimated_cents: total,
+    lines,
+  };
+
+  // Paiement par carte : on crée la page de paiement Stripe avant d'enregistrer la commande,
+  // pour y noter son identifiant. La commande passe « payée » quand Stripe prévient le webhook.
+  let session: { id: string; url: string | null } | null = null;
+  if (stripeEnabled) {
+    // Retour sur le même site que le client (yris-studio.com, ou localhost pendant les tests).
+    const from = (await headers()).get("origin") ?? "";
+    const origin = /^https:\/\/(www\.)?yris-studio\.com$|^http:\/\/localhost:\d+$/.test(from) ? from : site.url;
+    try {
+      session = await stripe().checkout.sessions.create({
+        mode: "payment",
+        locale: "fr",
+        customer_email: email,
+        client_reference_id: orderId,
+        metadata: { order_id: orderId, ref },
+        payment_intent_data: { description: `Commande ${ref}`, metadata: { order_id: orderId } },
+        line_items: lines.map((l) => ({
+          quantity: l.qty,
+          price_data: { currency: "eur", unit_amount: l.unit_cents, product_data: { name: l.label } },
+        })),
+        // 30 minutes : le minimum accepté par Stripe. Au-delà, la commande est abandonnée.
+        expires_at: Math.floor(Date.now() / 1000) + 30 * 60,
+        success_url: `${origin}/panier/merci?ref=${encodeURIComponent(ref)}`,
+        cancel_url: `${origin}/panier?paiement=annule`,
+      });
+    } catch (e) {
+      console.error("Stripe : création du paiement impossible", e instanceof Error ? e.message : e);
+      return { status: "error", message: "Le paiement n'a pas pu démarrer. Réessayez dans un instant." };
+    }
+  }
+
+  const supabase = await createClient();
+  const { error } = await supabase.from("orders").insert({
+    ...order,
     kind: "commande",
     product_slug: items[0].product.slug,
     product_name: items.length === 1 ? items[0].product.name : `Panier : ${count} articles`,
     quantity: count,
     material: [...new Set(items.map((i) => i.product.material))].join(", "),
-    details: `${summaryText}${note ? `\n\nNote du client : ${note}` : ""}`,
     files: [],
-    estimated_cents: total,
-    lines,
+    ...(session ? { payment: "en attente", stripe_session: session.id } : {}),
   });
   if (error) {
     console.error("Panier : enregistrement impossible", error.message);
     return { status: "error", message: "La commande n'a pas pu être enregistrée. Réessayez dans un instant." };
   }
 
-  const ref = orderRef(orderId);
-  const where = delivery === "retrait" ? "Retrait en main propre" : `Livraison : ${address}, ${postalCode} ${city}`;
-  await notifyOwner({
-    subject: `Commande boutique ${ref} : ${name} (${formatPrice(total)})`,
-    replyTo: email,
-    body: `${summaryText}${note ? `\n\nNote : ${note}` : ""}`,
-    rows: [
-      ["Référence", ref],
-      ["Nom", name],
-      ["Email", email],
-      ["Téléphone", phone || "non précisé"],
-      ["Réception", where],
-      ["Total", formatPrice(total)],
-    ],
-  });
-  if (emailEnabled()) {
-    const summary = [...lines.map((l) => `${l.qty} × ${l.label} · ${formatPrice(l.qty * l.unit_cents)}`), `Total : ${formatPrice(total)}`, where]
-      .map(escapeHtml)
-      .join("<br>");
-    await sendRequestConfirmation({ orderId, to: email, name, kindLabel: "Commande boutique", summary, hasAccount: Boolean(user), shop: true });
-  }
-
+  if (session?.url) return { status: "redirect", url: session.url, ref };
+  await sendShopOrderEmails(order, false);
   return { status: "success", ref };
 }

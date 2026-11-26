@@ -206,6 +206,7 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
                         </p>
                         <div className="mt-2 flex items-center gap-2 text-[11.5px]">
                           <span className="font-mono text-fg/90">{amount(o) !== null ? formatPrice(amount(o)) : "À chiffrer"}</span>
+                          {o.payment === "payée" && <span className="rounded bg-accent/15 px-1 text-accent">Payée</span>}
                           {o.due_date ? (
                             <span className={`ml-auto flex items-center gap-1 ${late(o) ? "text-red-300" : "text-muted"}`}>
                               {late(o) ? <AlertTriangle size={11} aria-hidden /> : <CalendarClock size={11} aria-hidden />}
@@ -276,7 +277,10 @@ export default function OrdersBoard({ orders }: { orders: AdminOrder[] }) {
                       {statusMeta[o.status as OrderStatus]?.label ?? o.status}
                     </span>
                   </td>
-                  <td className="px-3 py-2 text-right font-mono">{amount(o) !== null ? formatPrice(amount(o)) : "—"}</td>
+                  <td className="px-3 py-2 text-right font-mono">
+                    {amount(o) !== null ? formatPrice(amount(o)) : "—"}
+                    {o.payment === "payée" && <span className="block font-sans text-[11px] text-accent">Payée</span>}
+                  </td>
                   <td className={`px-3 py-2 text-[12px] ${late(o) ? "text-red-300" : "text-muted"}`}>
                     {o.due_date ? dateFmt.format(new Date(`${o.due_date}T12:00:00`)) : "—"}
                   </td>

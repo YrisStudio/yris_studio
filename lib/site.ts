@@ -94,7 +94,7 @@ export const faq = [
   },
   {
     q: "Comment se passe le paiement ?",
-    a: "Une fois le devis validé, on vous envoie les modalités de paiement par email avant de lancer l'impression.",
+    a: "Les articles de la boutique se paient en ligne par carte bancaire, Apple Pay ou Google Pay, au moment de la commande. Pour une pièce sur mesure, on vous envoie le lien de paiement une fois le devis validé, avant de lancer l'impression.",
   },
 ];
 
