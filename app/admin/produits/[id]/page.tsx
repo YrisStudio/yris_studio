@@ -5,7 +5,7 @@ import PageHeader from "../../PageHeader";
 import ProductForm from "./ProductForm";
 import PhotoManager from "./PhotoManager";
 import { requireAdmin } from "@/lib/admin";
-import { photoUrl, productColumns, toProduct, type ProductRow } from "@/lib/products";
+import { photoUrl, productColumns, toProduct, type ProductRow, getCollections } from "@/lib/products";
 import { createClient } from "@/lib/supabase/server";
 
 export const metadata = { title: "Article" };
@@ -24,6 +24,7 @@ export default async function AdminProduct({ params }: { params: Promise<{ id: s
     row = data as ProductRow;
   }
   const product = row ? toProduct(row) : null;
+  const collections = await getCollections();
 
   return (
     <div className="max-w-3xl">
@@ -59,7 +60,7 @@ export default async function AdminProduct({ params }: { params: Promise<{ id: s
             <h2 className="text-[13px] font-medium">Infos</h2>
           </header>
           <div className="p-4">
-            <ProductForm product={product} />
+            <ProductForm product={product} collections={collections} />
           </div>
         </section>
       </div>

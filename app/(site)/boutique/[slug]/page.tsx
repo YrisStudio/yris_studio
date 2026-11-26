@@ -30,7 +30,16 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
   const facts = [
     { icon: Layers, label: "Matière", value: product.material },
     ...(heat ? [{ icon: Flame, label: "Résiste", value: heat }] : []),
-    { icon: Clock, label: "Fabrication", value: product.leadDays ? `${product.leadDays} jour${product.leadDays > 1 ? "s" : ""} ouvré${product.leadDays > 1 ? "s" : ""}` : "Prêt à partir" },
+    {
+      icon: Clock,
+      label: product.stockQty > 0 ? "Disponibilité" : "Fabrication",
+      value:
+        product.stockQty > 0
+          ? "En stock, expédié sous 24 h"
+          : product.leadDays
+            ? `${product.leadDays} jour${product.leadDays > 1 ? "s" : ""} ouvré${product.leadDays > 1 ? "s" : ""}`
+            : "Prêt à partir",
+    },
     { icon: Truck, label: "Réception", value: "Livraison ou retrait" },
   ];
 
@@ -47,7 +56,7 @@ export default async function ProductPage({ params }: { params: Promise<{ slug: 
         "@type": "Offer",
         price: (product.priceCents / 100).toFixed(2),
         priceCurrency: "EUR",
-        availability: "https://schema.org/MadeToOrder",
+        availability: product.stockQty > 0 ? "https://schema.org/InStock" : "https://schema.org/MadeToOrder",
         url: `${site.url}/boutique/${product.slug}`,
       },
     }),

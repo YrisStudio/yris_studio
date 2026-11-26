@@ -13,7 +13,7 @@ const hint = "mt-1 text-[11.5px] text-muted";
 
 const euro = (cents: number | null) => (cents === null ? "" : (cents / 100).toFixed(2).replace(".", ","));
 
-export default function ProductForm({ product }: { product: Product | null }) {
+export default function ProductForm({ product, collections }: { product: Product | null; collections: { slug: string; name: string }[] }) {
   const router = useRouter();
   const [state, action, pending] = useActionState<ProductState, FormData>(saveProduct, { status: "idle" });
   const [deleting, startDelete] = useTransition();
@@ -87,7 +87,28 @@ export default function ProductForm({ product }: { product: Product | null }) {
           </label>
           <input id="p-lead" name="lead_days" type="number" min={0} max={60} defaultValue={product?.leadDays ?? 3} className={field} />
         </div>
+        <div>
+          <label htmlFor="p-stock" className={label}>
+            Pièces déjà imprimées (stock)
+          </label>
+          <input id="p-stock" name="stock_qty" type="number" min={0} max={9999} defaultValue={product?.stockQty ?? 0} className={field} />
+          <p className={hint}>Si le stock est positif, la boutique affiche « En stock, expédié sous 24 h ». Il baisse tout seul à chaque vente payée.</p>
+        </div>
       </div>
+
+      {collections.length > 0 && (
+        <fieldset>
+          <legend className={label}>Collections</legend>
+          <div className="flex flex-wrap gap-x-4 gap-y-2">
+            {collections.map((c) => (
+              <label key={c.slug} className="inline-flex items-center gap-2 text-[13px]">
+                <input type="checkbox" name="collections" value={c.slug} defaultChecked={product?.collections.includes(c.slug)} className="size-4 accent-[var(--color-accent)]" />
+                {c.name}
+              </label>
+            ))}
+          </div>
+        </fieldset>
+      )}
 
       <div>
         <label htmlFor="p-colors" className={label}>

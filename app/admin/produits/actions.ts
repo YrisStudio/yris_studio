@@ -148,3 +148,29 @@ export async function makeCover(id: string, path: string): Promise<ProductState>
   refresh(slug);
   return { status: "success" };
 }
+
+// ── Collections de la boutique ───────────────────────────────────────────────
+export async function saveCollection(_prev: ProductState, formData: FormData): Promise<ProductState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const name = String(formData.get("name") ?? "").trim().slice(0, 80);
+  const description = String(formData.get("description") ?? "").trim().slice(0, 500);
+  const slug = slugify(name);
+  if (!name || slug.length < 2) return { status: "error", message: "Donne un nom à la collection." };
+  const supabase = await createClient();
+  const { error } = await supabase.from("collections").upsert({ slug, name, description: description || null });
+  if (error) return { status: "error", message: "Impossible d'enregistrer la collection." };
+  await logActivity("a créé la collection", name, "/admin/produits");
+  refresh();
+  return { status: "success", message: "Collection enregistrée" };
+}
+
+export async function deleteCollection(slug: string): Promise<ProductState> {
+  if (!(await isAdmin())) return { status: "error", message: "Accès refusé." };
+  const supabase = await createClient();
+  await supabase.from("collections").delete().eq("slug", slug);
+  // On retire aussi la collection des articles qui la portaient.
+  const { data } = await supabase.from("products").select("id, collections").contains("collections", [slug]);
+  for (const p of data ?? []) await supabase.from("products").update({ collections: (p.collections as string[]).filter((c) => c !== slug) }).eq("id", p.id);
+  refresh();
+  return { status: "success" };
+}

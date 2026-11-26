@@ -1,7 +1,7 @@
 import type { Metadata } from "next";
 import Link from "next/link";
 import { redirect } from "next/navigation";
-import { Check, Heart, LifeBuoy, LogOut, Package, Settings, ShieldCheck, Timer } from "lucide-react";
+import { Check, Gift, Heart, LifeBuoy, LogOut, Package, Settings, ShieldCheck, Timer, Truck } from "lucide-react";
 import { signOut } from "@/app/(site)/connexion/actions";
 import { CountUp, Spotlight } from "@/components/motion";
 import { ProductCard, stagger } from "@/components/sections";
@@ -9,6 +9,8 @@ import { Container, Mono, PrimaryLink, TextLink } from "@/components/ui";
 import { getFavoriteSlugs } from "@/lib/favorites";
 import { isAdmin } from "@/lib/admin";
 import { getProducts } from "@/lib/products";
+import { getReferralCode, REFERRAL_PERCENT, REFERRAL_REWARD_CENTS } from "@/lib/promo";
+import { carrierTrackingUrl } from "@/lib/shipping";
 import { formatPrice, orderRef, requestTypes } from "@/lib/site";
 import { createClient, getUser } from "@/lib/supabase/server";
 
@@ -28,6 +30,8 @@ type Order = {
   final_cents: number | null;
   status: string;
   created_at: string;
+  carrier: string | null;
+  tracking_number: string | null;
 };
 
 // Étapes de suivi d'une commande, dans l'ordre.
@@ -81,7 +85,7 @@ export default async function ComptePage() {
   const [{ data }, favoriteSlugs] = await Promise.all([
     supabase
       .from("orders")
-      .select("id, kind, product_name, quantity, material, details, estimated_cents, final_cents, status, created_at")
+      .select("id, kind, product_name, quantity, material, details, estimated_cents, final_cents, status, created_at, carrier, tracking_number")
       // Un admin peut lire toutes les commandes : ici on ne veut que les siennes.
       .eq("user_id", user.id)
       .or("payment.is.null,payment.eq.payée")
@@ -93,6 +97,7 @@ export default async function ComptePage() {
   const orders = (data ?? []) as Order[];
   const favorites = (await getProducts()).filter((p) => favoriteSlugs.has(p.slug));
   const inProgress = orders.filter((o) => o.status !== "terminée" && o.status !== "annulée").length;
+  const referral = user.email ? await getReferralCode(user.email) : null;
 
   const fullName = String(user.user_metadata?.full_name ?? "").trim();
   const firstName = fullName.split(" ")[0];
@@ -214,6 +219,16 @@ export default async function ComptePage() {
                       <div className="flex flex-col gap-2 lg:items-end">
                         <Tracker status={o.status} />
                         <Mono className="text-fg/70">{o.status}</Mono>
+                        {o.tracking_number && (
+                          <a
+                            href={(o.carrier && carrierTrackingUrl(o.carrier, o.tracking_number)) || "#"}
+                            target="_blank"
+                            rel="noreferrer"
+                            className="relative inline-flex items-center gap-1 text-xs font-medium text-accent hover:underline"
+                          >
+                            <Truck size={12} aria-hidden /> Suivre le colis ({o.carrier})
+                          </a>
+                        )}
                         <Link
                           href={`/signaler?sujet=commande&commande=${orderRef(o.id).slice(1)}`}
                           className="relative inline-flex items-center gap-1 text-xs text-muted hover:text-accent"
@@ -235,6 +250,20 @@ export default async function ComptePage() {
               <div className="mt-6">
                 <PrimaryLink href="/boutique">Voir la boutique</PrimaryLink>
               </div>
+            </div>
+          )}
+
+          {referral && (
+            <div className="mt-12 flex flex-wrap items-center gap-4 rounded-2xl border border-line bg-panel-2 p-6">
+              <Gift className="size-8 shrink-0 text-accent" strokeWidth={1.5} aria-hidden />
+              <div className="min-w-0 flex-1">
+                <p className="font-medium">Parrainez un ami</p>
+                <p className="mt-0.5 text-sm text-muted">
+                  Il a {REFERRAL_PERCENT} % de réduction sur sa première commande avec votre code, et vous recevez un bon de {formatPrice(REFERRAL_REWARD_CENTS)} dès qu&apos;il
+                  a payé.
+                </p>
+              </div>
+              <p className="select-all rounded-lg border border-dashed border-accent px-4 py-2 font-mono text-lg tracking-wider">{referral.code}</p>
             </div>
           )}
 

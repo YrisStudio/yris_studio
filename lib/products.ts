@@ -23,9 +23,11 @@ export type ProductRow = {
   active: boolean;
   featured: boolean;
   position: number;
+  stock_qty: number;
+  collections: string[];
 };
 
-export const productColumns = "id, slug, name, category, price_cents, material, summary, description, photos, colors, lead_days, active, featured, position";
+export const productColumns = "id, slug, name, category, price_cents, material, summary, description, photos, colors, lead_days, active, featured, position, stock_qty, collections";
 
 export const toProduct = (r: ProductRow): Product => ({
   id: r.id,
@@ -42,6 +44,8 @@ export const toProduct = (r: ProductRow): Product => ({
   active: r.active,
   featured: r.featured,
   position: r.position,
+  stockQty: r.stock_qty ?? 0,
+  collections: r.collections ?? [],
 });
 
 // Articles en vente, dans l'ordre choisi. Mis en cache le temps d'une requête.
@@ -56,3 +60,13 @@ export const getProducts = cache(async (): Promise<Product[]> => {
 export async function getProduct(slug: string): Promise<Product | null> {
   return (await getProducts()).find((p) => p.slug === slug) ?? null;
 }
+
+export type Collection = { slug: string; name: string; description: string | null; position: number };
+
+// Collections de la boutique (« Idées cadeaux », « Spécial voiture »…).
+export const getCollections = cache(async (): Promise<Collection[]> => {
+  if (!authEnabled) return [];
+  const supabase = await createClient();
+  const { data } = await supabase.from("collections").select("slug, name, description, position").order("position").order("name");
+  return (data ?? []) as Collection[];
+});

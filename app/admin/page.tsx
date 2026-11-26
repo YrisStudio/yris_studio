@@ -18,6 +18,7 @@ import RevenueChart from "./_dashboard/RevenueChart";
 import { getStatsResetAt, requireAdmin } from "@/lib/admin";
 import { formatHours, hoursUntilMaintenance, planPrinter } from "@/lib/atelier";
 import { getPrintJobs, getPrinters } from "@/lib/atelier-server";
+import { sanitizeFinance, urssafPeriods } from "@/lib/finance";
 import { activityGrid, change, monthlyRevenue, monthProjection, paidOrders, periodRange, periodStats, type Period } from "@/lib/dashboard";
 import { getAllOrders, isLate, type OrderEvent } from "@/lib/orders";
 import { eventLabel } from "@/lib/orders-meta";
@@ -91,6 +92,15 @@ export default async function AdminHome() {
   const maintenance = printers.filter((p) => hoursUntilMaintenance(p) <= 0).length;
   const late = orders.filter((o) => isLate(o)).length;
 
+  // Rappels : déclaration URSSAF qui approche, commandes récurrentes à créer.
+  const today = new Intl.DateTimeFormat("sv-SE", { timeZone: "Europe/Paris" }).format(now);
+  const [{ data: financeRow }, { count: recurringDue }] = await Promise.all([
+    supabase.from("admin_settings").select("value").eq("key", "finance").maybeSingle(),
+    supabase.from("recurring_orders").select("id", { count: "exact", head: true }).eq("active", true).lte("next_on", today),
+  ]);
+  const urssaf = urssafPeriods(now, sanitizeFinance(financeRow?.value).urssafPeriod).previous;
+  const urssafDays = Math.ceil((urssaf.due.getTime() - now.getTime()) / 86_400_000);
+
   const todo: Todo[] = [
     { href: "/admin/commandes", icon: Inbox, label: "Nouvelles demandes", value: orders.filter((o) => o.status === "reçue").length, note: "à chiffrer", tone: "alert" },
     { href: "/admin/commandes", icon: FileText, label: "Devis en attente", value: orders.filter((o) => o.status === "devis envoyé").length, note: "réponse du client", tone: "calm" },
@@ -107,6 +117,15 @@ export default async function AdminHome() {
     { href: "/admin/stock", icon: Cylinder, label: "Stock", value: lowStock, note: "à racheter", tone: "warn" },
     { href: "/admin/atelier", icon: Wrench, label: "Maintenance", value: maintenance, note: "imprimante(s) à entretenir", tone: "warn" },
     { href: "/admin/todo", icon: CheckSquare, label: "Tâches urgentes", value: todosRes.count ?? 0, note: "dans la to-do", tone: "calm" },
+    { href: "/admin/recurrentes", icon: CalendarClock, label: "Récurrentes", value: recurringDue ?? 0, note: "commande(s) pro à créer", tone: "warn" },
+    {
+      href: "/admin/finances",
+      icon: FileText,
+      label: "URSSAF",
+      value: urssafDays >= 0 && urssafDays <= 10 ? 1 : 0,
+      note: `déclarer ${urssaf.label} avant le ${urssaf.due.toLocaleDateString("fr-FR", { day: "numeric", month: "long" })}`,
+      tone: "warn",
+    },
   ];
   const attention = todo.filter((t) => t.value > 0);
 

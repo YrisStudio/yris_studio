@@ -1,9 +1,9 @@
 "use client";
 
-import { useActionState, useEffect, useState } from "react";
+import { useActionState, useEffect, useRef, useState, useTransition } from "react";
 import Link from "next/link";
 import { CheckCircle2, LoaderCircle, Lock, Minus, Plus, ShoppingBag, Trash2 } from "lucide-react";
-import { checkout, type CheckoutState } from "./actions";
+import { checkout, checkPromo, type CheckoutState } from "./actions";
 import { CategoryGlyph } from "@/components/Art";
 import { clearCart, MAX_QTY, setQty, useCart } from "@/lib/cart";
 import { swatch } from "@/lib/colors";
@@ -35,6 +35,27 @@ export default function CartView({
   const cart = useCart();
   const [state, action, pending] = useActionState<CheckoutState, FormData>(checkout, { status: "idle" });
   const [delivery, setDelivery] = useState<"livraison" | "retrait">("livraison");
+  const emailRef = useRef<HTMLInputElement>(null);
+  const [promoInput, setPromoInput] = useState("");
+  const [promo, setPromo] = useState<{ code: string; label: string; discountCents: number; percent: number | null } | null>(null);
+  const [promoMsg, setPromoMsg] = useState<string | null>(null);
+  const [checking, startCheck] = useTransition();
+
+  function applyPromo(subtotal: number, email: string) {
+    const code = promoInput.trim();
+    if (!code) return;
+    setPromoMsg(null);
+    startCheck(async () => {
+      const res = await checkPromo(code, subtotal, email);
+      if (!res) {
+        setPromo(null);
+        setPromoMsg("Ce code n'est pas valable pour ce panier.");
+        return;
+      }
+      const percent = res.label.endsWith("%") ? Number(res.label.replace(/[^\d]/g, "")) : null;
+      setPromo({ code: res.code, label: res.label, discountCents: res.discountCents, percent });
+    });
+  }
 
   // Commande enregistrée : on vide le panier. Paiement en ligne : direction la page Stripe
   // (le panier n'est vidé qu'une fois revenu sur /panier/merci, au cas où le client renonce).
@@ -64,6 +85,8 @@ export default function CartView({
     .filter((l): l is typeof l & { product: CatalogItem } => Boolean(l.product));
   const subtotal = lines.reduce((n, l) => n + l.qty * l.product.priceCents, 0);
   const shipping = delivery === "livraison" ? shippingCents : 0;
+  // La réduction affichée suit le panier ; le serveur la recalcule de toute façon au paiement.
+  const discount = promo ? Math.min(subtotal, promo.percent !== null ? Math.floor((subtotal * promo.percent) / 100) : promo.discountCents) : 0;
 
   if (!lines.length) {
     return (
@@ -151,7 +174,7 @@ export default function CartView({
               <label htmlFor="c-email" className={label}>
                 Email
               </label>
-              <input id="c-email" name="email" type="email" required autoComplete="email" defaultValue={user?.email} aria-invalid={Boolean(state.errors?.email)} className={field} />
+              <input ref={emailRef} id="c-email" name="email" type="email" required autoComplete="email" defaultValue={user?.email} aria-invalid={Boolean(state.errors?.email)} className={field} />
               <Err msg={state.errors?.email} />
             </div>
           </div>
@@ -226,11 +249,52 @@ export default function CartView({
               <dt className="text-muted">{delivery === "livraison" ? "Livraison" : "Retrait"}</dt>
               <dd className="font-mono">{shipping ? formatPrice(shipping) : "Gratuit"}</dd>
             </div>
+            {promo && discount > 0 && (
+              <div className="flex justify-between text-accent">
+                <dt>
+                  Code {promo.code} ({promo.label})
+                </dt>
+                <dd className="font-mono">−{formatPrice(discount)}</dd>
+              </div>
+            )}
             <div className="flex justify-between border-t border-line pt-3 text-base font-medium">
               <dt>Total</dt>
-              <dd className="font-mono">{formatPrice(subtotal + shipping)}</dd>
+              <dd className="font-mono">{formatPrice(subtotal + shipping - discount)}</dd>
             </div>
           </dl>
+          <div className="mt-4">
+            <input type="hidden" name="promo" value={promo?.code ?? ""} />
+            {promo ? (
+              <button type="button" onClick={() => setPromo(null)} className="text-xs text-muted underline-offset-4 hover:underline">
+                Retirer le code
+              </button>
+            ) : (
+              <div className="flex gap-2">
+                <input
+                  value={promoInput}
+                  onChange={(e) => setPromoInput(e.target.value.toUpperCase())}
+                  onKeyDown={(e) => {
+                    if (e.key === "Enter") {
+                      e.preventDefault();
+                      applyPromo(subtotal, emailRef.current?.value ?? "");
+                    }
+                  }}
+                  placeholder="Code promo"
+                  aria-label="Code promo"
+                  className={`${field} py-2 font-mono text-sm uppercase`}
+                />
+                <button
+                  type="button"
+                  onClick={() => applyPromo(subtotal, emailRef.current?.value ?? "")}
+                  disabled={checking || !promoInput.trim()}
+                  className="shrink-0 rounded-lg border border-line-strong px-3 text-sm hover:border-fg disabled:opacity-50"
+                >
+                  {checking ? <LoaderCircle size={14} className="animate-spin" aria-hidden /> : "Appliquer"}
+                </button>
+              </div>
+            )}
+            {(promoMsg || state.errors?.promo) && <p className="mt-1.5 text-xs text-red-600">{promoMsg ?? state.errors?.promo}</p>}
+          </div>
           <button
             type="submit"
             disabled={pending || state.status === "redirect"}
@@ -239,7 +303,7 @@ export default function CartView({
             {(pending || state.status === "redirect") && <LoaderCircle size={15} className="animate-spin" aria-hidden />}
             {payOnline ? (
               <>
-                <Lock size={14} aria-hidden /> Payer {formatPrice(subtotal + shipping)}
+                <Lock size={14} aria-hidden /> Payer {formatPrice(subtotal + shipping - discount)}
               </>
             ) : (
               "Commander"

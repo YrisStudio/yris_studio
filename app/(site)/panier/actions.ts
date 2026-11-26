@@ -3,7 +3,8 @@
 import { headers } from "next/headers";
 import { getProducts } from "@/lib/products";
 import { sendShopOrderEmails, type ShopOrder } from "@/lib/shop-order";
-import { orderRef, SHOP_SHIPPING_CENTS, site } from "@/lib/site";
+import { findPromo, recordPromoUse } from "@/lib/promo";
+import { formatPrice, orderRef, SHOP_SHIPPING_CENTS, site } from "@/lib/site";
 import { stripe, stripeEnabled } from "@/lib/stripe";
 import { authEnabled, createClient, getUser } from "@/lib/supabase/server";
 
@@ -12,7 +13,7 @@ export type CheckoutState = {
   message?: string;
   ref?: string;
   url?: string;
-  errors?: Partial<Record<"name" | "email" | "address" | "items", string>>;
+  errors?: Partial<Record<"name" | "email" | "address" | "items" | "promo", string>>;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -61,11 +62,16 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
   const lines = items.map((i) => ({ label: label(i), qty: i.qty, unit_cents: i.product.priceCents! }));
   const shipping = delivery === "livraison" ? SHOP_SHIPPING_CENTS : 0;
   if (shipping) lines.push({ label: "Livraison", qty: 1, unit_cents: shipping });
-  const total = lines.reduce((n, l) => n + l.qty * l.unit_cents, 0);
+  const subtotal = items.reduce((n, i) => n + i.qty * i.product.priceCents!, 0);
   const count = items.reduce((n, i) => n + i.qty, 0);
-  const summaryText = items.map((i) => `${i.qty} × ${label(i)}`).join("\n");
-
   const user = await getUser();
+
+  // Code promo (ou de parrainage) : toujours revérifié ici, sur le prix des articles (hors livraison).
+  const promo = await findPromo(get("promo"), subtotal, email);
+  if (get("promo") && !promo) return { status: "error", errors: { promo: "Ce code n'est pas valable pour ce panier." } };
+  const discount = promo?.discount_cents ?? 0;
+  const total = lines.reduce((n, l) => n + l.qty * l.unit_cents, 0) - discount;
+  const summaryText = [...items.map((i) => `${i.qty} × ${label(i)}`), ...(promo ? [`Code ${promo.code} : −${formatPrice(discount)}`] : [])].join("\n");
   const orderId = crypto.randomUUID();
   const ref = orderRef(orderId);
   const order: ShopOrder = {
@@ -82,6 +88,11 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
     estimated_cents: total,
     lines,
   };
+  const extra = {
+    items: items.map((i) => ({ slug: i.product.slug, name: i.product.name, color: i.color, qty: i.qty, unit_cents: i.product.priceCents! })),
+    promo_code: promo?.code ?? null,
+    discount_cents: discount || null,
+  };
 
   // Paiement par carte : on crée la page de paiement Stripe avant d'enregistrer la commande,
   // pour y noter son identifiant. La commande passe « payée » quand Stripe prévient le webhook.
@@ -91,12 +102,17 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
     const from = (await headers()).get("origin") ?? "";
     const origin = /^https:\/\/(www\.)?yris-studio\.com$|^http:\/\/localhost:\d+$/.test(from) ? from : site.url;
     try {
+      // La réduction devient un bon Stripe à usage unique, appliqué à cette page de paiement.
+      const coupon = discount
+        ? await stripe().coupons.create({ amount_off: discount, currency: "eur", duration: "once", max_redemptions: 1, name: `Code ${promo!.code}` })
+        : null;
       session = await stripe().checkout.sessions.create({
+        ...(coupon ? { discounts: [{ coupon: coupon.id }] } : {}),
         mode: "payment",
         locale: "fr",
         customer_email: email,
         client_reference_id: orderId,
-        metadata: { order_id: orderId, ref },
+        metadata: { order_id: orderId, ref, ...(promo ? { promo: promo.code } : {}) },
         payment_intent_data: { description: `Commande ${ref}`, metadata: { order_id: orderId } },
         line_items: lines.map((l) => ({
           quantity: l.qty,
@@ -122,6 +138,7 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
     quantity: count,
     material: [...new Set(items.map((i) => i.product.material))].join(", "),
     files: [],
+    ...extra,
     ...(session ? { payment: "en attente", stripe_session: session.id } : {}),
   });
   if (error) {
@@ -131,5 +148,12 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
 
   if (session?.url) return { status: "redirect", url: session.url, ref };
   await sendShopOrderEmails(order, false);
+  if (promo) await recordPromoUse(promo.code, orderId, email);
   return { status: "success", ref };
+}
+
+// Vérifie un code depuis le panier (avant de payer), pour afficher la réduction.
+export async function checkPromo(code: string, subtotal: number, email: string) {
+  const promo = await findPromo(code, Math.max(0, Math.round(subtotal)), email);
+  return promo ? { code: promo.code, discountCents: promo.discount_cents, label: promo.label } : null;
 }

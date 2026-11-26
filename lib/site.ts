@@ -66,6 +66,8 @@ export type Product = {
   active: boolean;
   featured: boolean;
   position: number;
+  stockQty: number;
+  collections: string[];
 };
 
 export const materials = [

@@ -40,6 +40,11 @@ export function ProductCard({
               />
             )}
           </Link>
+          {product.stockQty > 0 && product.priceCents !== null && (
+            <span className="absolute left-3 top-3 rounded-full bg-white/90 px-2.5 py-1 text-[11.5px] font-medium text-neutral-900 shadow-sm">
+              En stock · expédié sous 24 h
+            </span>
+          )}
           {showFavorite && (
             <div className="absolute right-3 top-3">
               <FavoriteButton slug={product.slug} name={product.name} initial={favorite} />

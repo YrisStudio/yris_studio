@@ -3,7 +3,7 @@ import Link from "next/link";
 import { FinalCta, ProductCard } from "@/components/sections";
 import { Container, Eyebrow } from "@/components/ui";
 import { getFavoriteSlugs } from "@/lib/favorites";
-import { getProducts } from "@/lib/products";
+import { getCollections, getProducts } from "@/lib/products";
 import { authEnabled } from "@/lib/supabase/server";
 import { categories, categoryLabel, type Category } from "@/lib/site";
 
@@ -18,13 +18,15 @@ const sorts = [
   { id: "prix-desc", label: "Prix ↓", title: "Prix décroissant" },
 ] as const;
 
-export default async function BoutiquePage({ searchParams }: { searchParams: Promise<{ categorie?: string; tri?: string }> }) {
-  const { categorie, tri } = await searchParams;
-  const [favorites, all] = await Promise.all([getFavoriteSlugs(), getProducts()]);
+export default async function BoutiquePage({ searchParams }: { searchParams: Promise<{ categorie?: string; tri?: string; collection?: string }> }) {
+  const { categorie, tri, collection } = await searchParams;
+  const [favorites, all, collections] = await Promise.all([getFavoriteSlugs(), getProducts(), getCollections()]);
+  const currentCollection = collections.find((c) => c.slug === collection) ?? null;
   const current = categories.find((c) => c.toLowerCase() === categorie) ?? null;
   const sort = sorts.find((s) => s.id === tri)?.id ?? "";
 
   let products = current ? all.filter((p) => p.category === current) : all;
+  if (currentCollection) products = products.filter((p) => p.collections.includes(currentCollection.slug));
   if (sort) {
     // Les articles sur devis passent à la fin, quel que soit l'ordre.
     const price = (c: number | null) => (c === null ? Infinity : sort === "prix" ? c : -c);
@@ -85,6 +87,22 @@ export default async function BoutiquePage({ searchParams }: { searchParams: Pro
         </div>
 
         <Container className="pt-10">
+          {collections.length > 0 && (
+            <nav aria-label="Collections" className="mb-6 flex flex-wrap items-center gap-2 text-sm">
+              <span className="text-muted">Collections :</span>
+              {collections.map((c) => (
+                <Link
+                  key={c.slug}
+                  href={currentCollection?.slug === c.slug ? "/boutique" : `/boutique?collection=${c.slug}`}
+                  aria-current={currentCollection?.slug === c.slug ? "page" : undefined}
+                  className="rounded-full border border-line-strong px-3 py-1 transition hover:border-fg aria-[current=page]:border-accent aria-[current=page]:bg-accent aria-[current=page]:text-white"
+                >
+                  {c.name}
+                </Link>
+              ))}
+            </nav>
+          )}
+          {currentCollection?.description && <p className="-mt-2 mb-6 text-[15px] text-muted">{currentCollection.description}</p>}
           {products.length ? (
             <div className="grid gap-4 sm:grid-cols-2 lg:grid-cols-3">
               {products.map((p, i) => (

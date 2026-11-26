@@ -6,6 +6,8 @@ import { usePathname, useRouter, useSearchParams } from "next/navigation";
 import {
   ArrowUpRight,
   Boxes,
+  Percent,
+  Repeat,
   FolderKanban,
   History,
   Wallet,
@@ -53,7 +55,9 @@ const allGroups: Group[] = [
     items: [
       { href: "/admin/commandes", label: "Commandes", icon: Inbox, keywords: "devis kanban" },
       { href: "/admin/clients", label: "Clients", icon: Users, keywords: "clients pros fiches étiquettes notes" },
-      { href: "/admin/produits", label: "Produits", icon: Store, keywords: "boutique articles photos prix couleurs catalogue" },
+      { href: "/admin/produits", label: "Produits", icon: Store, keywords: "boutique articles photos prix couleurs catalogue collections stock statistiques" },
+      { href: "/admin/promos", label: "Codes promo", icon: Percent, keywords: "réductions parrainage coupons" },
+      { href: "/admin/recurrentes", label: "Récurrentes", icon: Repeat, keywords: "pros abonnement commandes régulières" },
     ],
   },
   {
