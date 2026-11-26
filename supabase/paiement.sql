@@ -20,3 +20,7 @@ create policy "orders: créer les siennes" on public.orders
     and (payment is null or payment = 'en attente')
     and paid_at is null
   );
+
+-- Le webhook utilise la clé secrète (service_role) : les projets récents ne lui donnent aucun droit par défaut.
+grant select, update on public.orders to service_role;
+grant insert on public.order_events to service_role;
