@@ -14,6 +14,7 @@ export const companyFields = [
   { key: "phone", label: "Téléphone", placeholder: "06 00 00 00 00" },
   { key: "website", label: "Site", placeholder: "yris-studio.com" },
   { key: "paymentTerms", label: "Conditions de paiement", placeholder: "Paiement à la commande" },
+  { key: "mediator", label: "Médiateur de la consommation (nom + site)", placeholder: "CM2C – www.cm2c.net" },
 ] as const;
 
 export type CompanyKey = (typeof companyFields)[number]["key"];
@@ -21,9 +22,9 @@ export type Company = Record<CompanyKey, string>;
 
 export const defaultCompany: Company = {
   name: "Yris Studio",
-  legalName: "",
-  status: "",
-  siret: "",
+  legalName: "Raphaël GAUTHIER",
+  status: "Entrepreneur individuel (micro-entreprise)",
+  siret: "131 784 290 00010",
   vat: "TVA non applicable, art. 293 B du CGI",
   address: "",
   postalCode: "",
@@ -32,6 +33,7 @@ export const defaultCompany: Company = {
   phone: "",
   website: "yris-studio.com",
   paymentTerms: "Paiement à la commande",
+  mediator: "",
 };
 
 export function sanitizeCompany(raw: unknown): Company {

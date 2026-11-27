@@ -13,7 +13,7 @@ export type CheckoutState = {
   message?: string;
   ref?: string;
   url?: string;
-  errors?: Partial<Record<"name" | "email" | "address" | "items" | "promo", string>>;
+  errors?: Partial<Record<"name" | "email" | "address" | "items" | "promo" | "cgv", string>>;
 };
 
 const EMAIL_RE = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -56,6 +56,7 @@ export async function checkout(_prev: CheckoutState, formData: FormData): Promis
   if (!EMAIL_RE.test(email)) errors.email = "Cette adresse email ne semble pas valide.";
   if (delivery === "livraison" && (address.length < 5 || !postalCode || city.length < 2))
     errors.address = "Indiquez l'adresse complète (rue, code postal et ville), ou choisissez le retrait.";
+  if (get("cgv") !== "on") errors.cgv = "Merci d'accepter les conditions générales de vente.";
   if (Object.keys(errors).length) return { status: "error", errors };
 
   const label = (i: (typeof items)[number]) => `${i.product.name}${i.color ? ` (${i.color})` : ""}`;

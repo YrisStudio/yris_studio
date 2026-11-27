@@ -71,6 +71,7 @@ export async function saveCompany(_prev: SettingsState, formData: FormData): Pro
     return { status: "error", message: "Impossible d'enregistrer les infos." };
   }
   revalidatePath("/admin", "layout");
+  for (const p of ["/mentions-legales", "/cgv", "/confidentialite"]) revalidatePath(p);
   return { status: "success", message: "Infos enregistrées" };
 }
 

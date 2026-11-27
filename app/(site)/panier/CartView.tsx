@@ -295,10 +295,25 @@ export default function CartView({
             )}
             {(promoMsg || state.errors?.promo) && <p className="mt-1.5 text-xs text-red-600">{promoMsg ?? state.errors?.promo}</p>}
           </div>
+          <label className="mt-6 flex items-start gap-2.5 text-sm leading-snug">
+            <input type="checkbox" name="cgv" required aria-invalid={Boolean(state.errors?.cgv)} className="mt-0.5 size-4 shrink-0 accent-[var(--color-accent)]" />
+            <span>
+              J&apos;accepte les{" "}
+              <Link href="/cgv" target="_blank" className="text-accent underline">
+                conditions générales de vente
+              </Link>{" "}
+              et j&apos;ai lu la{" "}
+              <Link href="/confidentialite" target="_blank" className="text-accent underline">
+                politique de confidentialité
+              </Link>
+              .
+            </span>
+          </label>
+          <Err msg={state.errors?.cgv} />
           <button
             type="submit"
             disabled={pending || state.status === "redirect"}
-            className="mt-6 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
+            className="mt-4 inline-flex w-full items-center justify-center gap-2 rounded-lg bg-accent px-5 py-3 text-sm font-medium text-white transition hover:brightness-110 disabled:opacity-60"
           >
             {(pending || state.status === "redirect") && <LoaderCircle size={15} className="animate-spin" aria-hidden />}
             {payOnline ? (

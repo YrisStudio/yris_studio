@@ -1,5 +1,6 @@
 import Link from "next/link";
 import NewsletterForm from "@/components/NewsletterForm";
+import { legalLinks } from "@/lib/legal";
 import { nav, site } from "@/lib/site";
 
 export default function Footer() {
@@ -29,7 +30,14 @@ export default function Footer() {
         <NewsletterForm />
       </div>
       <div className="mx-auto flex w-full max-w-[1120px] flex-col gap-2 border-t border-line px-5 py-6 text-xs sm:flex-row sm:justify-between sm:px-6">
-        <p>© {new Date().getFullYear()} {site.name}</p>
+        <div className="flex flex-wrap gap-x-4 gap-y-1">
+          <p>© {new Date().getFullYear()} {site.name}</p>
+          {legalLinks.map((l) => (
+            <Link key={l.href} href={l.href} className="hover:text-fg">
+              {l.label}
+            </Link>
+          ))}
+        </div>
         <p>Paiement sécurisé par carte. Les pièces sur mesure font l&apos;objet d&apos;un devis gratuit.</p>
       </div>
     </footer>

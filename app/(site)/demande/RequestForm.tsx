@@ -321,6 +321,11 @@ export default function RequestForm({
         {pending && <LoaderCircle size={18} className="animate-spin" aria-hidden />}
         {pending ? "Envoi…" : type === "commande" ? "Envoyer la commande" : "Demander un devis gratuit"}
       </button>
+      <p className="text-center text-xs leading-relaxed text-muted">
+        Vos informations et fichiers servent uniquement à traiter votre demande. Voir notre{" "}
+        <Link href="/confidentialite" className="underline hover:text-fg">politique de confidentialité</Link> et nos{" "}
+        <Link href="/cgv" className="underline hover:text-fg">conditions de vente</Link>.
+      </p>
         </>
       )}
     </form>
